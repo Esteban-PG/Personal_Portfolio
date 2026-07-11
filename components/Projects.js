@@ -10,6 +10,11 @@ export default function Projects() {
             <span className="cmd">ls ~/projects</span>
           </span>
         </div>
+        {projects.length === 0 && (
+          <p className="projects-empty">
+            # work in progress — new projects coming soon
+          </p>
+        )}
         <div className="grid">
           {projects.map((project) => (
             <article className="card" key={project.slug}>

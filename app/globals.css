@@ -281,6 +281,11 @@ section {
   display: flex;
   gap: 18px;
 }
+.projects-empty {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--dim);
+}
 
 /* ---------- experience ---------- */
 .xp {
