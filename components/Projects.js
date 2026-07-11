@@ -16,37 +16,57 @@ export default function Projects() {
           </p>
         )}
         <div className="grid">
-          {projects.map((project) => (
-            <article className="card" key={project.slug}>
-              <span className="card-path">
-                ~/projects/<b>{project.slug}</b>
-              </span>
-              <h3>{project.title}</h3>
-              <p>{project.description}</p>
-              <div className="chips">
-                {project.chips.map((chip) => (
-                  <span className="chip" key={chip}>
-                    {chip}
-                  </span>
-                ))}
-              </div>
-              {project.links?.length > 0 && (
-                <div className="card-links">
-                  {project.links.map((link) => (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      {...(link.internal
-                        ? {}
-                        : { target: "_blank", rel: "noopener" })}
-                    >
-                      {link.label}
-                    </a>
+          {projects.map((project) => {
+            // The first link becomes the whole-card click target (stretched
+            // link); any remaining links stay clickable on top of it.
+            const [primary, ...rest] = project.links ?? []
+            return (
+              <article
+                className={`card${primary ? " card-clickable" : ""}`}
+                key={project.slug}
+              >
+                <span className="card-path">
+                  ~/projects/<b>{project.slug}</b>
+                </span>
+                <h3>{project.title}</h3>
+                <p>{project.description}</p>
+                <div className="chips">
+                  {project.chips.map((chip) => (
+                    <span className="chip" key={chip}>
+                      {chip}
+                    </span>
                   ))}
                 </div>
-              )}
-            </article>
-          ))}
+                {project.links?.length > 0 && (
+                  <div className="card-links">
+                    {primary && (
+                      <a
+                        href={primary.href}
+                        className="card-link-stretched"
+                        {...(primary.internal
+                          ? {}
+                          : { target: "_blank", rel: "noopener" })}
+                      >
+                        {primary.label}
+                      </a>
+                    )}
+                    {rest.map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        className="card-link-top"
+                        {...(link.internal
+                          ? {}
+                          : { target: "_blank", rel: "noopener" })}
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>

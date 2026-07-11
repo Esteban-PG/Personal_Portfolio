@@ -281,6 +281,22 @@ section {
   display: flex;
   gap: 18px;
 }
+/* Whole-card click target: the primary link's ::after covers the card. */
+.card-clickable {
+  position: relative;
+  cursor: pointer;
+}
+.card-link-stretched::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+}
+/* Secondary links sit above the stretched overlay so they stay clickable. */
+.card-link-top {
+  position: relative;
+  z-index: 1;
+}
 .projects-empty {
   font-family: var(--mono);
   font-size: 14px;
@@ -373,6 +389,24 @@ section {
 }
 
 /* ---------- ragebait game page ---------- */
+.game-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 14px;
+  margin-bottom: 24px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.game-back:hover {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+  text-decoration: none;
+}
 .game-mobile-note {
   display: none;
   font-family: var(--mono);

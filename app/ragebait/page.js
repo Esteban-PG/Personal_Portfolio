@@ -18,6 +18,9 @@ export default function RagebaitPage() {
       <main>
         <section id="ragebait">
           <div className="wrap">
+            <a href="/" className="game-back">
+              ← back to portfolio
+            </a>
             <div className="sec-head">
               <span>
                 <span className="prompt">➜ ~</span>{" "}
@@ -61,10 +64,6 @@ export default function RagebaitPage() {
                   </a>
                 </div>
               )}
-              <div className="out">
-                <span className="k">back:</span>{" "}
-                <a href="/">cd ~/portfolio →</a>
-              </div>
             </div>
           </div>
         </section>
