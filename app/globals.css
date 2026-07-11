@@ -330,6 +330,13 @@ section {
   font-weight: 600;
   font-size: 17px;
 }
+.xp-role-link {
+  color: inherit;
+}
+.xp-role-link:hover {
+  color: var(--amber);
+  text-decoration: none;
+}
 .xp-meta {
   font-family: var(--mono);
   font-size: 12.5px;

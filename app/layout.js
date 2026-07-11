@@ -18,7 +18,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata = {
   title: "Esteban — Software · Data · QA",
   description:
-    "Portfolio of Esteban, Systems Engineering student from Costa Rica. Projects in C++/Lua game engines, Python automation, SQL and data analysis.",
+    "Portfolio of Esteban, a Computer Science graduate (Software Engineering emphasis) from Costa Rica. Projects in C++/Lua game engines, Python automation, SQL and data analysis.",
 }
 
 export const viewport = {

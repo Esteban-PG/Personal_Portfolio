@@ -13,7 +13,20 @@ export default function Experience() {
         <div className="xp">
           {experience.map((item) => (
             <div className="xp-item" key={item.role}>
-              <div className="xp-role">{item.role}</div>
+              <div className="xp-role">
+                {item.href ? (
+                  <a
+                    className="xp-role-link"
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {item.role} ↗
+                  </a>
+                ) : (
+                  item.role
+                )}
+              </div>
               <div className="xp-meta">{item.meta}</div>
               <ul>
                 {item.bullets.map((bullet, i) => (
