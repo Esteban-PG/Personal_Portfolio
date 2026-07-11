@@ -30,11 +30,21 @@ export default function Projects() {
                   </span>
                 ))}
               </div>
-              <div className="card-links">
-                <a href={project.link.href} target="_blank" rel="noopener">
-                  {project.link.label}
-                </a>
-              </div>
+              {project.links?.length > 0 && (
+                <div className="card-links">
+                  {project.links.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      {...(link.internal
+                        ? {}
+                        : { target: "_blank", rel: "noopener" })}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              )}
             </article>
           ))}
         </div>

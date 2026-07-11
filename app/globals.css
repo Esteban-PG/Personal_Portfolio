@@ -372,6 +372,83 @@ section {
   margin-bottom: 4px;
 }
 
+/* ---------- ragebait game page ---------- */
+.game-mobile-note {
+  display: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--amber-dim);
+  margin-bottom: 14px;
+}
+@media (max-width: 640px), (pointer: coarse) {
+  .game-mobile-note {
+    display: block;
+  }
+}
+.game-shell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 180, 84, 0.04);
+}
+.game-frame {
+  position: relative;
+  width: 100%;
+  /* Ragebait renders at 800×600 logical → 4:3 (not 16:9). */
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.game-frame canvas {
+  /* Override the inline width/height SDL sets on the backing store. */
+  width: 100% !important;
+  height: 100% !important;
+  image-rendering: pixelated;
+  outline: none;
+  border: 0;
+  background: #000;
+}
+.game-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 20px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+.game-status b {
+  color: var(--amber);
+  font-weight: 600;
+}
+.game-progress {
+  font-size: 12.5px;
+  color: var(--dim);
+}
+.blink {
+  color: var(--amber);
+  animation: blink 1.1s steps(1) infinite;
+}
+.game-notes {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
+
 /* ---------- footer ---------- */
 footer {
   border-top: 1px solid var(--border);
@@ -454,7 +531,8 @@ footer p {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cursor {
+  .cursor,
+  .blink {
     animation: none;
   }
   html {
