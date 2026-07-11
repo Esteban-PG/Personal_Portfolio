@@ -100,7 +100,7 @@ export default function Hero() {
                   <div className="out">
                     <span className="k">cv:</span>{" "}
                     <a href={cv} download="Esteban_Chaves_Obando_CV.pdf">
-                      download résumé ↓
+                      download cv ↓
                     </a>
                   </div>
                 )}
