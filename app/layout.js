@@ -1,4 +1,5 @@
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google"
+import { siteUrl } from "@/lib/content"
 import "./globals.css"
 
 const plexSans = IBM_Plex_Sans({
@@ -15,10 +16,30 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 })
 
+const title = "Esteban — Software · Data · QA"
+const description =
+  "Portfolio of Esteban, a Computer Science graduate (Software Engineering emphasis) from Costa Rica. Projects in C++/Lua game engines, Python automation, SQL and data analysis."
+
 export const metadata = {
-  title: "Esteban — Software · Data · QA",
-  description:
-    "Portfolio of Esteban, a Computer Science graduate (Software Engineering emphasis) from Costa Rica. Projects in C++/Lua game engines, Python automation, SQL and data analysis.",
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title,
+    description,
+    url: "/",
+    siteName: "Esteban — Portfolio",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 }
 
 export const viewport = {

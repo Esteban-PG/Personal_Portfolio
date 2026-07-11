@@ -88,7 +88,7 @@ export default function Hero() {
 
             {showOut1 && (
               <div>
-                <div className="hero-name">{name}</div>
+                <h1 className="hero-name">{name}</h1>
                 <div className="hero-role">{role}</div>
                 {meta.map((line) => (
                   <div className="out" key={line.key}>
