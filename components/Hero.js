@@ -67,7 +67,7 @@ export default function Hero() {
     }
   }, [])
 
-  const { name, role, meta, links } = profile
+  const { name, role, meta, links, cv } = profile
 
   return (
     <header>
@@ -96,6 +96,14 @@ export default function Hero() {
                     <span className="v">{line.value}</span>
                   </div>
                 ))}
+                {cv && (
+                  <div className="out">
+                    <span className="k">cv:</span>{" "}
+                    <a href={cv} download="Esteban_Chaves_Obando_CV.pdf">
+                      download résumé ↓
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 
