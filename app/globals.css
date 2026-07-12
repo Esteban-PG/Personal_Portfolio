@@ -95,10 +95,17 @@ nav {
   font-family: var(--mono);
   font-size: 13px;
   color: var(--muted);
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 .nav-links a:hover {
   color: var(--amber);
   text-decoration: none;
+}
+.nav-links a.active {
+  color: var(--amber);
+  border-bottom-color: var(--amber);
 }
 
 /* ---------- hero terminal ---------- */

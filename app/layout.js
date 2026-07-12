@@ -1,4 +1,5 @@
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
 import { siteUrl } from "@/lib/content"
 import "./globals.css"
 
@@ -50,7 +51,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${plexSans.variable} ${plexMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   )
 }
