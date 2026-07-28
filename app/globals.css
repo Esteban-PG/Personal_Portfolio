@@ -612,11 +612,6 @@ footer p {
   color: var(--dim);
 }
 
-/* ---------- typing animation helpers ---------- */
-.hidden-line {
-  visibility: hidden;
-}
-
 @media (max-width: 640px) {
   .nav-links {
     gap: 16px;

@@ -32,21 +32,33 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 app/
-  layout.js        Root layout: fonts + metadata
-  page.js          Home page — composes all sections
-  globals.css      Theme variables + all styles
+  layout.js            Root layout: fonts + metadata
+  page.js              Home page — composes all sections
+  globals.css          Theme variables + all styles
+  icon.svg             Favicon
+  opengraph-image.js   Social preview, generated at build time
+  sitemap.js           /sitemap.xml
+  robots.js            /robots.txt
+  ragebait/page.js     /ragebait — plays the WASM build of the game
 components/
   Nav.js
-  Hero.js          "use client" — typewriter animation
+  Hero.js              "use client" — typewriter animation
   Projects.js
   Experience.js
   Skills.js
   Footer.js
+  RagebaitGame.js      "use client" — Emscripten canvas + loader
 lib/
-  content.js       All copy/data (profile, projects, experience, skills)
-legacy/
-  index.html       Original single-file version (kept for reference)
+  content.js           All copy/data (profile, projects, experience, skills)
+public/
+  cv/                  Downloadable CV (PDF)
+  ragebait/            Emscripten build artifacts — see docs/ragebait-build.md
+docs/
+  ragebait-build.md    How to refresh the Ragebait WASM build
 ```
+
+> Anything inside `public/` is served as-is at the site root, so keep notes and
+> docs in `docs/` instead.
 
 ## Editing content
 
@@ -56,5 +68,12 @@ to touch the components.
 
 ## Deploy
 
-Ready for [Vercel](https://vercel.com/): push to a Git repo and import it, or run
-`vercel`. No environment variables required.
+Deployed on [Vercel](https://vercel.com/) at
+<https://personal-portfolio-ten-sigma-53.vercel.app>; every push to `main`
+redeploys.
+
+### Environment variables
+
+| Variable               | Required | Purpose                                                                 |
+| ---------------------- | -------- | ----------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL` | No       | Canonical/OG/sitemap/robots base URL. Set it when a custom domain is added — otherwise `siteUrl` in [`lib/content.js`](lib/content.js) falls back to the Vercel URL above. |

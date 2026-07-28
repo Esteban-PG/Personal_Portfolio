@@ -1,7 +1,11 @@
-# public/ragebait/ — Ragebait WebAssembly build
+# Ragebait — build de WebAssembly
 
-Estos son los artefactos del build web de Ragebait (Emscripten), servidos como
-estáticos desde el mismo dominio del portafolio. La página `/ragebait` los carga.
+Cómo actualizar los artefactos que viven en `public/ragebait/`: son la salida del
+build web de Ragebait (Emscripten), servidos como estáticos desde el mismo
+dominio del portafolio. La página `/ragebait` los carga.
+
+> Este archivo vive en `docs/` y **no** en `public/`: todo lo que está en
+> `public/` queda publicado en el sitio.
 
 ## Archivos necesarios
 
