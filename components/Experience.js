@@ -28,11 +28,13 @@ export default function Experience() {
                 )}
               </div>
               <div className="xp-meta">{item.meta}</div>
-              <ul>
-                {item.bullets.map((bullet, i) => (
-                  <li key={i}>{bullet}</li>
-                ))}
-              </ul>
+              {item.bullets?.length > 0 && (
+                <ul>
+                  {item.bullets.map((bullet, i) => (
+                    <li key={i}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
         </div>

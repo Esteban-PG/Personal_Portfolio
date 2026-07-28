@@ -4,7 +4,7 @@ import { profile } from "@/lib/content"
 // Auto-detected by Next.js: this generated image becomes the Open Graph
 // (and, by fallback, Twitter) preview for the site. Mirrors the terminal
 // aesthetic of the home page instead of shipping a static asset.
-export const alt = "Esteban — Software · Data · QA"
+export const alt = "Esteban — Junior Software Engineer"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 

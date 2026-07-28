@@ -17,9 +17,9 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 })
 
-const title = "Esteban — Software · Data · QA"
+const title = "Esteban — Junior Software Engineer"
 const description =
-  "Portfolio of Esteban, a Computer Science graduate (Software Engineering emphasis) from Costa Rica. Projects in C++/Lua game engines, Python automation, SQL and data analysis."
+  "Portfolio of Esteban Chaves, a Junior Software Engineer and Computer Science graduate (UCR) from Costa Rica, with enterprise experience at Mastercard and HCL Tech. Projects in Python automation, C++/Lua game engines, SQL and testing."
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
