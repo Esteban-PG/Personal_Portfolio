@@ -12,9 +12,10 @@ export default function Footer() {
         </div>
         <h2>Let&apos;s build something.</h2>
         <p>
-          I&apos;m looking for a junior software engineering role where I can
-          ship real things, write the tests that keep them working, and keep
-          learning fast. If that sounds like your team, I&apos;d love to talk.
+          I&apos;m looking for a junior role in software engineering, QA, or
+          data where I can ship real things, write the tests that keep them
+          working, and keep learning fast. If that sounds like your team,
+          I&apos;d love to talk.
         </p>
         <a className="btn" href={`mailto:${email}`}>
           get in touch
