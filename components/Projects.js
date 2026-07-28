@@ -25,11 +25,26 @@ export default function Projects() {
                 className={`card${primary ? " card-clickable" : ""}`}
                 key={project.slug}
               >
-                <span className="card-path">
-                  ~/projects/<b>{project.slug}</b>
-                </span>
+                <div className="card-top">
+                  <span className="card-path">
+                    ~/projects/<b>{project.slug}</b>
+                  </span>
+                  {project.status && (
+                    <span className="card-status">
+                      <i className="status-dot" aria-hidden="true" />
+                      {project.status}
+                    </span>
+                  )}
+                </div>
                 <h3>{project.title}</h3>
                 <p>{project.description}</p>
+                {project.highlights?.length > 0 && (
+                  <ul className="card-highlights">
+                    {project.highlights.map((highlight, i) => (
+                      <li key={i}>{highlight}</li>
+                    ))}
+                  </ul>
+                )}
                 <div className="chips">
                   {project.chips.map((chip) => (
                     <span className="chip" key={chip}>
