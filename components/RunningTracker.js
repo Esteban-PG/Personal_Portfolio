@@ -108,9 +108,9 @@ export default function RunningTracker({ initialLogs, storageReady }) {
   return (
     <div className="rn">
       <p className="rn-intro">
-        I started running on October 3, 2026 with close to zero fitness. The
-        plan: finish a 2.5K race on October 30, then run 40 minutes without
-        stopping by the end of November. Every session gets logged here.
+        A public log of my running training: a progressive plan to build
+        endurance step by step, with every session tracked to show the
+        progress along the way.
       </p>
 
       {!storageReady && (
