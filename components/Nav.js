@@ -47,7 +47,7 @@ export default function Nav() {
           {links.map((link) => (
             <a
               key={link.id}
-              href={`#${link.id}`}
+              href={`/#${link.id}`}
               className={active === link.id ? "active" : undefined}
               aria-current={active === link.id ? "true" : undefined}
             >

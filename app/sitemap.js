@@ -16,5 +16,11 @@ export default function sitemap() {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${siteUrl}/running`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
   ]
 }
