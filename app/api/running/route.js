@@ -32,6 +32,7 @@ function pick(value, allowed) {
 function cleanLog(input = {}) {
   return {
     status: pick(input.status, STATUSES) || "done",
+    distanceKm: number(input.distanceKm, 100),
     continuousMin: number(input.continuousMin, 300),
     totalMin: number(input.totalMin, 300),
     speedKmh: number(input.speedKmh, 30),

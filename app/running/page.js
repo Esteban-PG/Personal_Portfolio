@@ -6,9 +6,9 @@ import { getLogs } from "@/lib/running-store"
 export const dynamic = "force-dynamic"
 
 export const metadata = {
-  title: "Running log — from zero to 5K",
+  title: "Running log",
   description:
-    "Esteban's public running log: a plan from zero fitness to a 2.5K race, then 40 minutes non-stop, with every session tracked.",
+    "Esteban's public running log: a progressive training plan with every session tracked by distance, time and pace.",
   alternates: { canonical: "/running" },
 }
 

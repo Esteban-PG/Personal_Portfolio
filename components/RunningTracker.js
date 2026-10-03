@@ -8,6 +8,8 @@ import {
   paces,
   planStart,
   planEnd,
+  addDays,
+  weekday,
   diffDays,
   formatDay,
   formatShort,
@@ -15,6 +17,7 @@ import {
 
 const KEY_STORAGE = "running-key"
 const LOGGABLE = ["run", "test", "race", "walk"]
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 const PLACE_LABEL = {
   treadmill: "treadmill",
@@ -34,12 +37,44 @@ function localToday() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+function inPlan(date) {
+  return date >= planStart && date <= planEnd
+}
+
+// Weeks run Monday to Sunday.
+function startOfWeek(date) {
+  return addDays(date, -((weekday(date) + 6) % 7))
+}
+
+function round1(n) {
+  return Math.round(n * 10) / 10
+}
+
+// Average pace for a session in min/km, or null without distance and time.
+function paceOf(log) {
+  if (!log?.distanceKm || !log?.totalMin) return null
+  return log.totalMin / log.distanceKm
+}
+
+function formatPace(minPerKm) {
+  let m = Math.floor(minPerKm)
+  let s = Math.round((minPerKm - m) * 60)
+  if (s === 60) {
+    m += 1
+    s = 0
+  }
+  return `${m}:${String(s).padStart(2, "0")} /km`
+}
+
 function summarize(log) {
   if (!log) return ""
   if (log.status === "skipped") return "skipped"
   const parts = []
+  if (log.distanceKm != null) parts.push(`${log.distanceKm} km`)
   if (log.continuousMin != null) parts.push(`${log.continuousMin} min non-stop`)
   if (log.totalMin != null) parts.push(`${log.totalMin} min total`)
+  const pace = paceOf(log)
+  if (pace) parts.push(formatPace(pace))
   if (log.speedKmh != null) parts.push(`${log.speedKmh} km/h`)
   if (log.place) parts.push(PLACE_LABEL[log.place])
   if (log.breathing) parts.push(BREATHING_LABEL[log.breathing])
@@ -58,19 +93,39 @@ function marker(session, log, today) {
   return { text: "[ ]", cls: "" }
 }
 
+// What the plan says about a date, for headers and the editor.
+function planLabel(date) {
+  if (!inPlan(date)) return "Extra run, outside the plan"
+  const session = sessionFor(date)
+  return session.kind === "rest" ? "Extra run, rest day in the plan" : session.title
+}
+
 export default function RunningTracker({ initialLogs, storageReady }) {
   const [logs, setLogs] = useState(initialLogs || {})
   const [today, setToday] = useState(null)
   const [adminKey, setAdminKey] = useState("")
+  const [keyRejected, setKeyRejected] = useState(false)
   const [editing, setEditing] = useState(null)
 
   useEffect(() => {
     setToday(localToday())
+    let stored = ""
     try {
-      setAdminKey(window.localStorage.getItem(KEY_STORAGE) || "")
+      stored = window.localStorage.getItem(KEY_STORAGE) || ""
     } catch {
       // storage unavailable: owner just logs in again
     }
+    setAdminKey(stored)
+    if (!stored) return
+    // Check the saved key up front so a rejected key shows a message
+    // instead of failing silently on the first save.
+    fetch("/api/running", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-running-key": stored },
+      body: JSON.stringify({ check: true }),
+    })
+      .then((res) => setKeyRejected(res.status === 401))
+      .catch(() => {})
   }, [])
 
   const calendar = useMemo(() => buildCalendar(), [])
@@ -80,21 +135,58 @@ export default function RunningTracker({ initialLogs, storageReady }) {
     const entries = Object.entries(logs).filter(
       ([, log]) => log && log.status !== "skipped"
     )
-    const best = entries.reduce(
-      (m, [, log]) => Math.max(m, log.continuousMin || 0),
-      0
-    )
-    const totalMin = entries.reduce((s, [, log]) => s + (log.totalMin || 0), 0)
-    return { count: entries.length, best, totalMin }
-  }, [logs])
+    const weekStart = today ? startOfWeek(today) : null
+    const weekEnd = weekStart ? addDays(weekStart, 6) : null
+    let best = 0
+    let totalMin = 0
+    let totalKm = 0
+    let weekKm = 0
+    let longestKm = 0
+    let bestPace = null
+    for (const [date, log] of entries) {
+      best = Math.max(best, log.continuousMin || 0)
+      totalMin += log.totalMin || 0
+      totalKm += log.distanceKm || 0
+      longestKm = Math.max(longestKm, log.distanceKm || 0)
+      if (weekStart && date >= weekStart && date <= weekEnd) {
+        weekKm += log.distanceKm || 0
+      }
+      const pace = paceOf(log)
+      if (pace && (bestPace === null || pace < bestPace)) bestPace = pace
+    }
+    return {
+      count: entries.length,
+      best,
+      totalMin: Math.round(totalMin),
+      totalKm: round1(totalKm),
+      weekKm: round1(weekKm),
+      longestKm: round1(longestKm),
+      bestPace,
+    }
+  }, [logs, today])
 
-  const todaySession = today ? sessionFor(today) : null
-  const beforePlan = today && today < planStart
+  // Logs on dates the plan doesn't cover, newest first.
+  const extraRuns = useMemo(
+    () =>
+      Object.entries(logs)
+        .filter(([date, log]) => log && !inPlan(date))
+        .sort(([a], [b]) => (a < b ? 1 : -1)),
+    [logs]
+  )
+
   const afterPlan = today && today > planEnd
 
-  function openEditor(date) {
+  function openEditor(date, pickDate = false) {
     if (!isOwner) return
-    setEditing(date)
+    setEditing({ date, pickDate })
+  }
+
+  function unlock(key) {
+    try {
+      window.localStorage.setItem(KEY_STORAGE, key)
+    } catch {}
+    setAdminKey(key)
+    setKeyRejected(false)
   }
 
   function lock() {
@@ -102,8 +194,28 @@ export default function RunningTracker({ initialLogs, storageReady }) {
       window.localStorage.removeItem(KEY_STORAGE)
     } catch {}
     setAdminKey("")
+    setKeyRejected(false)
     setEditing(null)
   }
+
+  const extraSection = extraRuns.length > 0 && (
+    <>
+      <h2 className="rn-h2">Other runs</h2>
+      <ul className="rn-days rn-extra">
+        {extraRuns.map(([date, log]) => (
+          <LogRow
+            key={date}
+            date={date}
+            title={planLabel(date)}
+            log={log}
+            mark={marker({ date, kind: "run" }, log, today)}
+            clickable={isOwner}
+            onOpen={() => openEditor(date)}
+          />
+        ))}
+      </ul>
+    </>
+  )
 
   return (
     <div className="rn">
@@ -121,12 +233,10 @@ export default function RunningTracker({ initialLogs, storageReady }) {
 
       <TodayPanel
         today={today}
-        session={todaySession}
         log={today ? logs[today] : null}
-        beforePlan={beforePlan}
-        afterPlan={afterPlan}
         isOwner={isOwner}
         onLog={() => openEditor(today)}
+        onLogOther={() => openEditor(today, true)}
       />
 
       <Goals today={today} logs={logs} best={stats.best} />
@@ -139,12 +249,28 @@ export default function RunningTracker({ initialLogs, storageReady }) {
           <span className="v">{stats.count}</span>
         </div>
         <div className="out">
+          <span className="k">distance:</span>{" "}
+          <span className="v">
+            {stats.totalKm} km total, {stats.weekKm} km this week
+          </span>
+        </div>
+        <div className="out">
           <span className="k">time on feet:</span>{" "}
           <span className="v">{stats.totalMin} min</span>
         </div>
         <div className="out">
+          <span className="k">longest run:</span>{" "}
+          <span className="v">{stats.longestKm} km</span>
+        </div>
+        <div className="out">
           <span className="k">longest non-stop jog:</span>{" "}
           <span className="v">{stats.best} min</span>
+        </div>
+        <div className="out">
+          <span className="k">best average pace:</span>{" "}
+          <span className="v">
+            {stats.bestPace ? formatPace(stats.bestPace) : "—"}
+          </span>
         </div>
         <div className="out">
           <span className="k">paces:</span>{" "}
@@ -155,84 +281,68 @@ export default function RunningTracker({ initialLogs, storageReady }) {
         </div>
       </div>
 
+      {afterPlan && extraSection}
+
       <h2 className="rn-h2">The plan</h2>
       <div className="rn-weeks">
-        {calendar.map((week) => (
-          <div className="rn-week" key={week.start}>
-            <div className="rn-week-head">
-              <span className="rn-week-label">{week.label}</span>
-              <span className="rn-week-range">
-                {formatShort(week.start)} – {formatShort(week.end)}
-              </span>
-            </div>
-            <ul className="rn-days">
-              {week.days.map((session) => {
-                const log = logs[session.date]
-                const m = marker(session, log, today)
-                const clickable = isOwner && LOGGABLE.includes(session.kind)
-                const rowClass = [
-                  "rn-day",
-                  `kind-${session.kind}`,
-                  session.date === today ? "is-current" : "",
-                  m.cls,
-                ]
-                  .filter(Boolean)
-                  .join(" ")
-                const body = (
-                  <>
-                    <span className="rn-mark" aria-hidden="true">
-                      {m.text}
-                    </span>
-                    <span className="rn-date">{formatDay(session.date)}</span>
-                    <span className="rn-title">
-                      {session.title}
-                      {log && (
-                        <span className="rn-logged">{summarize(log)}</span>
-                      )}
-                      {log?.notes && (
-                        <span className="rn-notes">“{log.notes}”</span>
-                      )}
-                    </span>
-                  </>
-                )
-                return (
-                  <li key={session.date} className={rowClass}>
-                    {clickable ? (
-                      <button
-                        type="button"
-                        className="rn-day-btn"
-                        onClick={() => openEditor(session.date)}
-                        aria-label={`Log ${formatDay(session.date)}`}
-                      >
-                        {body}
-                      </button>
-                    ) : (
-                      <div className="rn-day-btn">{body}</div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+        {calendar.map((week) => {
+          const planned = week.days.filter((s) => s.target != null)
+          const done = planned.filter((s) => {
+            const status = logs[s.date]?.status
+            return status === "done" || status === "partial"
+          })
+          const current =
+            today &&
+            (today < planStart
+              ? week.start === planStart
+              : today >= week.start && today <= week.end)
+          return (
+            <details className="rn-week" key={week.start} open={Boolean(current)}>
+              <summary className="rn-week-head">
+                <span className="rn-week-label">{week.label}</span>
+                <span className="rn-week-range">
+                  {formatShort(week.start)} – {formatShort(week.end)}
+                </span>
+                {planned.length > 0 && (
+                  <span className="rn-week-count">
+                    {done.length}/{planned.length} done
+                  </span>
+                )}
+              </summary>
+              <ul className="rn-days">
+                {week.days.map((session) => (
+                  <LogRow
+                    key={session.date}
+                    date={session.date}
+                    title={session.title}
+                    kind={session.kind}
+                    log={logs[session.date]}
+                    mark={marker(session, logs[session.date], today)}
+                    current={session.date === today}
+                    clickable={isOwner}
+                    onOpen={() => openEditor(session.date)}
+                  />
+                ))}
+              </ul>
+            </details>
+          )
+        })}
       </div>
+
+      {!afterPlan && extraSection}
 
       <OwnerBox
         isOwner={isOwner}
-        onUnlock={(key) => {
-          try {
-            window.localStorage.setItem(KEY_STORAGE, key)
-          } catch {}
-          setAdminKey(key)
-        }}
+        keyRejected={keyRejected}
+        onUnlock={unlock}
         onLock={lock}
       />
 
       {editing && (
         <LogEditor
-          date={editing}
-          session={sessionFor(editing)}
-          existing={logs[editing]}
+          initialDate={editing.date}
+          pickDate={editing.pickDate}
+          logs={logs}
           adminKey={adminKey}
           onClose={() => setEditing(null)}
           onSaved={(date, log) => {
@@ -247,57 +357,89 @@ export default function RunningTracker({ initialLogs, storageReady }) {
             })
             setEditing(null)
           }}
-          onAuthFailed={lock}
+          onKeyRejected={() => setKeyRejected(true)}
         />
       )}
     </div>
   )
 }
 
-function TodayPanel({ today, session, log, beforePlan, afterPlan, isOwner, onLog }) {
+function LogRow({ date, title, kind = "run", log, mark, current, clickable, onOpen }) {
+  const rowClass = ["rn-day", `kind-${kind}`, current ? "is-current" : "", mark.cls]
+    .filter(Boolean)
+    .join(" ")
+  const body = (
+    <>
+      <span className="rn-mark" aria-hidden="true">
+        {mark.text}
+      </span>
+      <span className="rn-date">{formatDay(date)}</span>
+      <span className="rn-title">
+        {title}
+        {log && <span className="rn-logged">{summarize(log)}</span>}
+        {log?.notes && <span className="rn-notes">“{log.notes}”</span>}
+      </span>
+    </>
+  )
+  return (
+    <li className={rowClass}>
+      {clickable ? (
+        <button
+          type="button"
+          className="rn-day-btn"
+          onClick={onOpen}
+          aria-label={`Log ${formatDay(date)}`}
+        >
+          {body}
+        </button>
+      ) : (
+        <div className="rn-day-btn">{body}</div>
+      )}
+    </li>
+  )
+}
+
+function TodayPanel({ today, log, isOwner, onLog, onLogOther }) {
   if (!today) return <div className="rn-today rn-today-empty" />
 
-  if (beforePlan) {
-    return (
-      <div className="rn-today">
-        <div className="rn-today-date">{formatDay(today)}</div>
-        <div className="rn-today-title">
-          The plan starts {formatDay(planStart)}.
-        </div>
-      </div>
-    )
+  const session = inPlan(today) ? sessionFor(today) : null
+  let kind = "run"
+  let title
+  let note = null
+  if (today < planStart) {
+    kind = "rest"
+    title = `The plan starts ${formatDay(planStart)}.`
+  } else if (!session) {
+    title = "The plan is done. Every run still gets logged here."
+  } else {
+    kind = session.kind
+    title = session.title
+    note = session.note
   }
 
-  if (afterPlan) {
-    return (
-      <div className="rn-today">
-        <div className="rn-today-date">{formatDay(today)}</div>
-        <div className="rn-today-title">
-          This block is finished. Next up: getting the 5K under 30 minutes.
-        </div>
-      </div>
-    )
-  }
-
-  const canLog = isOwner && LOGGABLE.includes(session.kind)
+  const plannedRun = session && LOGGABLE.includes(session.kind)
+  const status = log
+    ? summarize(log)
+    : plannedRun
+    ? "not logged yet"
+    : "nothing planned today"
 
   return (
-    <div className={`rn-today kind-${session.kind}`}>
+    <div className={`rn-today kind-${kind}`}>
       <div className="rn-today-date">today, {formatDay(today)}</div>
-      <div className="rn-today-title">{session.title}</div>
-      {session.note && <p className="rn-today-note">{session.note}</p>}
+      <div className="rn-today-title">{title}</div>
+      {note && <p className="rn-today-note">{note}</p>}
       <div className="rn-today-foot">
-        <span className="rn-today-status">
-          {log
-            ? summarize(log)
-            : LOGGABLE.includes(session.kind)
-            ? "not logged yet"
-            : "nothing to log today"}
-        </span>
-        {canLog && (
-          <button type="button" className="rn-btn" onClick={onLog}>
-            {log ? "Edit today's log" : "Log today's session"}
-          </button>
+        <span className="rn-today-status">{status}</span>
+        {isOwner && (
+          <div className="rn-today-actions">
+            <button type="button" className="rn-btn rn-btn-quiet" onClick={onLogOther}>
+              + Another day
+            </button>
+            <button type="button" className="rn-btn" onClick={onLog}>
+              {log ? "Edit today's log" : "Log today's run"}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -369,30 +511,37 @@ function ProgressChart({ logs, today }) {
   const W = 640
   const H = 220
   const pad = { l: 34, r: 12, t: 12, b: 26 }
-  const span = diffDays(planStart, planEnd)
   const yMax = 45
 
-  const x = (date) => pad.l + (diffDays(planStart, date) / span) * (W - pad.l - pad.r)
-  const y = (min) => H - pad.b - (min / yMax) * (H - pad.t - pad.b)
+  const actual = Object.entries(logs)
+    .filter(
+      ([, log]) => log && log.status !== "skipped" && log.continuousMin != null
+    )
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+
+  // The x axis covers the plan, stretched to include any run outside it
+  // and today once the plan is over.
+  const lastDate = [planEnd, actual.at(-1)?.[0], today].filter(Boolean).sort().at(-1)
+  const start = actual[0] && actual[0][0] < planStart ? actual[0][0] : planStart
+  const end = lastDate
+  const span = Math.max(diffDays(start, end), 1)
+
+  const x = (date) => pad.l + (diffDays(start, date) / span) * (W - pad.l - pad.r)
+  const y = (min) => H - pad.b - (Math.min(min, yMax) / yMax) * (H - pad.t - pad.b)
 
   const planned = buildCalendar()
     .flatMap((w) => w.days)
     .filter((s) => s.target != null)
   const plannedPath = planned.map((s) => `${x(s.date)},${y(s.target)}`).join(" ")
-
-  const actual = Object.entries(logs)
-    .filter(
-      ([date, log]) =>
-        date >= planStart &&
-        date <= planEnd &&
-        log &&
-        log.status !== "skipped" &&
-        log.continuousMin != null
-    )
-    .sort(([a], [b]) => (a < b ? -1 : 1))
   const actualPath = actual.map(([d, l]) => `${x(d)},${y(l.continuousMin)}`).join(" ")
 
-  const showToday = today && today >= planStart && today <= planEnd
+  // Axis labels closer than ~48px to an earlier one are dropped.
+  const ticks = []
+  for (const d of [start, planStart, goals.race.date, goals.continuous.date, end]) {
+    if (ticks.every((t) => Math.abs(x(t) - x(d)) > 48)) ticks.push(d)
+  }
+
+  const showToday = today && today >= start && today <= end
 
   return (
     <figure className="rn-chart">
@@ -411,7 +560,7 @@ function ProgressChart({ logs, today }) {
             </text>
           </g>
         ))}
-        {[planStart, goals.race.date, goals.continuous.date].map((d) => (
+        {ticks.map((d) => (
           <text key={d} x={x(d)} y={H - 6} className="rn-axis" textAnchor="middle">
             {formatShort(d)}
           </text>
@@ -438,7 +587,7 @@ function ProgressChart({ logs, today }) {
   )
 }
 
-function OwnerBox({ isOwner, onUnlock, onLock }) {
+function OwnerBox({ isOwner, keyRejected, onUnlock, onLock }) {
   const [open, setOpen] = useState(false)
   const [key, setKey] = useState("")
   const [error, setError] = useState("")
@@ -447,7 +596,14 @@ function OwnerBox({ isOwner, onUnlock, onLock }) {
   if (isOwner) {
     return (
       <div className="rn-owner">
-        Editing unlocked on this device.{" "}
+        {keyRejected ? (
+          <span className="rn-error">
+            The server rejected the saved key. If you changed it in Vercel,
+            lock and log in again with the new one.
+          </span>
+        ) : (
+          "Editing unlocked on this device."
+        )}{" "}
         <button type="button" className="rn-link" onClick={onLock}>
           Lock
         </button>
@@ -521,18 +677,28 @@ function Segmented({ name, value, options, onChange }) {
   )
 }
 
-function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDeleted, onAuthFailed }) {
-  const [form, setForm] = useState(() => ({
-    status: existing?.status || "done",
-    continuousMin: existing?.continuousMin ?? "",
-    totalMin: existing?.totalMin ?? "",
-    speedKmh: existing?.speedKmh ?? "",
-    place: existing?.place || "treadmill",
-    breathing: existing?.breathing || null,
-    notes: existing?.notes || "",
-  }))
+function formFromLog(log) {
+  return {
+    status: log?.status || "done",
+    distanceKm: log?.distanceKm ?? "",
+    continuousMin: log?.continuousMin ?? "",
+    totalMin: log?.totalMin ?? "",
+    speedKmh: log?.speedKmh ?? "",
+    place: log?.place || "treadmill",
+    breathing: log?.breathing || null,
+    notes: log?.notes || "",
+  }
+}
+
+function LogEditor({ initialDate, pickDate, logs, adminKey, onClose, onSaved, onDeleted, onKeyRejected }) {
+  const [date, setDate] = useState(initialDate)
+  const [form, setForm] = useState(() => formFromLog(logs[initialDate]))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+
+  const validDate = DATE_RE.test(date)
+  const existing = validDate ? logs[date] : null
+  const session = validDate && inPlan(date) ? sessionFor(date) : null
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose()
@@ -543,6 +709,12 @@ function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDele
   const set = (field) => (value) => setForm((f) => ({ ...f, [field]: value }))
   const setInput = (field) => (e) => set(field)(e.target.value)
 
+  // Picking a date that already has a log loads it, so saving edits it.
+  function changeDate(value) {
+    setDate(value)
+    if (DATE_RE.test(value)) setForm(formFromLog(logs[value]))
+  }
+
   async function request(method, body) {
     const url = method === "DELETE" ? `/api/running?date=${date}` : "/api/running"
     const res = await fetch(url, {
@@ -552,8 +724,10 @@ function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDele
     })
     const data = await res.json().catch(() => ({}))
     if (res.status === 401) {
-      onAuthFailed()
-      throw new Error("Your key is no longer valid. Log in again.")
+      onKeyRejected()
+      throw new Error(
+        "The server rejected your key. If you changed it in Vercel, lock and log in again."
+      )
     }
     if (!res.ok) throw new Error(data.error || "Saving failed. Try again.")
     return data
@@ -589,9 +763,24 @@ function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDele
       <div className="rn-backdrop" onClick={onClose} />
       <form className="rn-sheet" onSubmit={save}>
         <div className="rn-sheet-head">
-          <h3 id="rn-modal-title">{formatDay(date)}</h3>
-          <p>{session.title}</p>
+          <h3 id="rn-modal-title">{validDate ? formatDay(date) : "Pick a date"}</h3>
+          {validDate && <p>{planLabel(date)}</p>}
         </div>
+
+        {pickDate && (
+          <label className="rn-field">
+            <span className="rn-label">Date</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => changeDate(e.target.value)}
+              required
+            />
+            {existing && (
+              <span className="rn-hint">This day already has a log; saving updates it.</span>
+            )}
+          </label>
+        )}
 
         <div className="rn-field">
           <span className="rn-label">How did it go?</span>
@@ -611,15 +800,14 @@ function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDele
           <>
             <div className="rn-row">
               <label className="rn-field">
-                <span className="rn-label">Longest non-stop jog (min)</span>
+                <span className="rn-label">Distance (km)</span>
                 <input
                   type="number"
                   inputMode="decimal"
                   min="0"
-                  step="0.5"
-                  placeholder={session.target ? String(session.target) : ""}
-                  value={form.continuousMin}
-                  onChange={setInput("continuousMin")}
+                  step="0.01"
+                  value={form.distanceKm}
+                  onChange={setInput("distanceKm")}
                 />
               </label>
               <label className="rn-field">
@@ -631,6 +819,18 @@ function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDele
                   step="1"
                   value={form.totalMin}
                   onChange={setInput("totalMin")}
+                />
+              </label>
+              <label className="rn-field">
+                <span className="rn-label">Longest non-stop jog (min)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.5"
+                  placeholder={session?.target ? String(session.target) : ""}
+                  value={form.continuousMin}
+                  onChange={setInput("continuousMin")}
                 />
               </label>
               <label className="rn-field">
@@ -699,7 +899,7 @@ function LogEditor({ date, session, existing, adminKey, onClose, onSaved, onDele
           <button type="button" className="rn-btn rn-btn-quiet" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="submit" className="rn-btn" disabled={busy}>
+          <button type="submit" className="rn-btn" disabled={busy || !validDate}>
             {busy ? "Saving…" : "Save session"}
           </button>
         </div>
