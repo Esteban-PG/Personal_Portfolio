@@ -817,6 +817,12 @@ footer p {
 .rn-dot {
   fill: var(--amber);
 }
+.rn-bar-km {
+  fill: var(--amber);
+}
+.rn-chart-head {
+  margin-bottom: 10px;
+}
 .rn-chart figcaption {
   margin-top: 8px;
   font-family: var(--mono);

@@ -507,33 +507,51 @@ function Goals({ today, logs, best }) {
   )
 }
 
+const CHART_METRICS = [
+  ["distance", "Distance"],
+  ["nonstop", "Non-stop jog"],
+]
+
 function ProgressChart({ logs, today }) {
   const W = 640
   const H = 220
   const pad = { l: 34, r: 12, t: 12, b: 26 }
-  const yMax = 45
 
-  const actual = Object.entries(logs)
-    .filter(
-      ([, log]) => log && log.status !== "skipped" && log.continuousMin != null
-    )
+  const done = Object.entries(logs)
+    .filter(([, log]) => log && log.status !== "skipped")
     .sort(([a], [b]) => (a < b ? -1 : 1))
+  const hasNonstop = done.some(([, l]) => l.continuousMin != null)
+  const [picked, setPicked] = useState(null)
+  // Until a metric is picked, show non-stop minutes only if any were logged.
+  const metric = picked || (hasNonstop ? "nonstop" : "distance")
+
+  const actual = done.filter(([, l]) =>
+    metric === "nonstop" ? l.continuousMin != null : l.distanceKm != null
+  )
+  const value = (l) => (metric === "nonstop" ? l.continuousMin : l.distanceKm)
 
   // The x axis covers the plan, stretched to include any run outside it
   // and today once the plan is over.
-  const lastDate = [planEnd, actual.at(-1)?.[0], today].filter(Boolean).sort().at(-1)
-  const start = actual[0] && actual[0][0] < planStart ? actual[0][0] : planStart
-  const end = lastDate
+  const firstDate = done[0]?.[0]
+  const start = firstDate && firstDate < planStart ? firstDate : planStart
+  const end = [planEnd, done.at(-1)?.[0], today].filter(Boolean).sort().at(-1)
   const span = Math.max(diffDays(start, end), 1)
 
+  const maxKm = Math.max(0, ...actual.map(([, l]) => l.distanceKm || 0))
+  const yMax = metric === "nonstop" ? 45 : Math.max(5, Math.ceil(maxKm / 5) * 5)
+  const yTicks =
+    metric === "nonstop"
+      ? [0, 10, 20, 30, 40]
+      : Array.from({ length: 6 }, (_, i) => round1((yMax / 5) * i))
+
   const x = (date) => pad.l + (diffDays(start, date) / span) * (W - pad.l - pad.r)
-  const y = (min) => H - pad.b - (Math.min(min, yMax) / yMax) * (H - pad.t - pad.b)
+  const y = (v) => H - pad.b - (Math.min(v, yMax) / yMax) * (H - pad.t - pad.b)
 
   const planned = buildCalendar()
     .flatMap((w) => w.days)
     .filter((s) => s.target != null)
   const plannedPath = planned.map((s) => `${x(s.date)},${y(s.target)}`).join(" ")
-  const actualPath = actual.map(([d, l]) => `${x(d)},${y(l.continuousMin)}`).join(" ")
+  const actualPath = actual.map(([d, l]) => `${x(d)},${y(value(l))}`).join(" ")
 
   // Axis labels closer than ~48px to an earlier one are dropped.
   const ticks = []
@@ -542,18 +560,35 @@ function ProgressChart({ logs, today }) {
   }
 
   const showToday = today && today >= start && today <= end
+  const unit = metric === "nonstop" ? "min non-stop" : "km"
 
   return (
     <figure className="rn-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Longest non-stop jog per session, planned versus actual">
-        {[0, 10, 20, 30, 40].map((v) => (
+      <div className="rn-chart-head">
+        <Segmented
+          name="Chart"
+          value={metric}
+          onChange={(v) => v && setPicked(v)}
+          options={CHART_METRICS}
+        />
+      </div>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={
+          metric === "nonstop"
+            ? "Longest non-stop jog per session, planned versus actual"
+            : "Distance per session"
+        }
+      >
+        {yTicks.map((v) => (
           <g key={v}>
             <line
               x1={pad.l}
               x2={W - pad.r}
               y1={y(v)}
               y2={y(v)}
-              className={v === 40 ? "rn-grid-goal" : "rn-grid"}
+              className={metric === "nonstop" && v === 40 ? "rn-grid-goal" : "rn-grid"}
             />
             <text x={pad.l - 8} y={y(v) + 4} className="rn-axis" textAnchor="end">
               {v}
@@ -568,20 +603,52 @@ function ProgressChart({ logs, today }) {
         {showToday && (
           <line x1={x(today)} x2={x(today)} y1={pad.t} y2={H - pad.b} className="rn-today-line" />
         )}
-        <polyline points={plannedPath} className="rn-planned" />
-        {actual.length > 1 && <polyline points={actualPath} className="rn-actual" />}
-        {actual.map(([d, l]) => (
-          <circle key={d} cx={x(d)} cy={y(l.continuousMin)} r="3.5" className="rn-dot">
-            <title>
-              {formatDay(d)}: {l.continuousMin} min non-stop
-            </title>
-          </circle>
-        ))}
+        {metric === "nonstop" && <polyline points={plannedPath} className="rn-planned" />}
+        {metric === "distance" &&
+          actual.map(([d, l]) => (
+            <rect
+              key={d}
+              x={x(d) - 4}
+              y={y(l.distanceKm)}
+              width="8"
+              height={Math.max(y(0) - y(l.distanceKm), 1)}
+              rx="2"
+              className="rn-bar-km"
+            >
+              <title>
+                {formatDay(d)}: {l.distanceKm} km
+              </title>
+            </rect>
+          ))}
+        {metric === "nonstop" && actual.length > 1 && (
+          <polyline points={actualPath} className="rn-actual" />
+        )}
+        {metric === "nonstop" &&
+          actual.map(([d, l]) => (
+            <circle key={d} cx={x(d)} cy={y(l.continuousMin)} r="3.5" className="rn-dot">
+              <title>
+                {formatDay(d)}: {l.continuousMin} min non-stop
+              </title>
+            </circle>
+          ))}
+        {actual.length === 0 && (
+          <text x={W / 2} y={H / 2} className="rn-axis" textAnchor="middle">
+            {metric === "nonstop"
+              ? "No session has non-stop minutes logged yet"
+              : "No session has a distance logged yet"}
+          </text>
+        )}
       </svg>
       <figcaption>
-        <span className="rn-key rn-key-actual">actual</span>{" "}
-        <span className="rn-key rn-key-planned">planned</span> longest non-stop
-        jog per session, in minutes
+        {metric === "nonstop" ? (
+          <>
+            <span className="rn-key rn-key-actual">actual</span>{" "}
+            <span className="rn-key rn-key-planned">planned</span> longest
+            non-stop jog per session, in minutes
+          </>
+        ) : (
+          <>distance per session, in {unit}</>
+        )}
       </figcaption>
     </figure>
   )
@@ -832,6 +899,7 @@ function LogEditor({ initialDate, pickDate, logs, adminKey, onClose, onSaved, on
                   value={form.continuousMin}
                   onChange={setInput("continuousMin")}
                 />
+                <span className="rn-hint">Counts toward the 40 min goal</span>
               </label>
               <label className="rn-field">
                 <span className="rn-label">Jog speed (km/h)</span>
