@@ -1238,20 +1238,36 @@ button.rn-day-btn:hover {
   cursor: default;
 }
 .fz-tabs {
+  position: relative;
   display: flex;
   gap: 6px;
   margin-bottom: 14px;
 }
 .fz-tabs button {
+  position: relative;
+  z-index: 1;
   flex: 1;
   padding: 9px 0;
+  transition: color 0.25s ease, border-color 0.25s ease;
 }
+/* la pestaña activa es transparente; el color lo pone .fz-tabs-marca que se desliza debajo */
 .fz-tabs button.activo,
 .fz-tabs button.activo:hover:not(:disabled) {
   color: var(--bg);
-  background: var(--amber);
+  background: transparent;
   border-color: var(--amber);
   font-weight: 600;
+}
+.fz-tabs-marca {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc((100% - (var(--n) - 1) * 6px) / var(--n));
+  background: var(--amber);
+  border-radius: 6px;
+  transform: translateX(calc(var(--i) * (100% + 6px)));
+  transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
 }
 /* el sitio le da 56px de relleno a cada <section>; aquí no */
 .fz section {
@@ -1518,5 +1534,84 @@ button.rn-day-btn:hover {
   }
   .fz-hist-valor {
     display: none;
+  }
+}
+
+/* ---------- /finanzas: animaciones ---------- */
+@keyframes fz-subir {
+  from { opacity: 0; transform: translateY(10px); }
+}
+@keyframes fz-crecer-x {
+  from { transform: scaleX(0); }
+}
+@keyframes fz-crecer-y {
+  from { transform: scaleY(0); }
+}
+@keyframes fz-girar {
+  to { transform: rotate(360deg); }
+}
+@keyframes fz-sacudir {
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+/* al abrir: cada bloque entra en cascada */
+.fz .wrap > * {
+  animation: fz-subir 0.45s ease both;
+}
+.fz .wrap > :nth-child(2) { animation-delay: 0.05s; }
+.fz .wrap > :nth-child(3) { animation-delay: 0.1s; }
+.fz .wrap > :nth-child(4) { animation-delay: 0.15s; }
+.fz .wrap > :nth-child(5) { animation-delay: 0.2s; }
+.fz .wrap > :nth-child(6) { animation-delay: 0.25s; }
+.fz .wrap > :nth-child(7) { animation-delay: 0.3s; }
+.fz .wrap > :nth-child(n + 8) { animation-delay: 0.35s; }
+/* lo que solo existe en la vista Mes entra al volver a ella */
+.fz .fz-aparece {
+  animation: fz-subir 0.35s ease both;
+}
+.fz-relleno {
+  transform-origin: left;
+  animation: fz-crecer-x 0.7s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+.fz-col-barra,
+.fz-hist-barra {
+  transform-origin: bottom;
+  animation: fz-crecer-y 0.5s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 15ms);
+}
+.fz-hist-barra {
+  animation-delay: calc(var(--i, 0) * 60ms);
+  transition: height 0.4s ease;
+}
+.fz-linea {
+  animation: fz-subir 0.4s ease 0.3s both;
+}
+.fz-movs li {
+  animation: fz-subir 0.35s ease both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+.fz-grande,
+.fz-valor,
+.fz-ritmo {
+  transition: color 0.3s ease;
+}
+.fz-icono {
+  display: inline-block;
+}
+.fz-gira {
+  animation: fz-girar 0.8s linear infinite;
+}
+.fz-error {
+  animation: fz-subir 0.25s ease both;
+}
+.fz-sacude {
+  animation: fz-sacudir 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fz *,
+  .fz *::before,
+  .fz *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }
