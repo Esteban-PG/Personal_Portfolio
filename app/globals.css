@@ -1194,3 +1194,329 @@ button.rn-day-btn:hover {
     padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* ---------- /finanzas (privada) ---------- */
+.fz {
+  padding: 28px 0 64px;
+  min-height: 100vh;
+}
+.fz .wrap {
+  max-width: 760px;
+}
+.fz-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.fz-prompt {
+  font-family: var(--mono);
+  font-size: 15px;
+}
+.fz-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fz button {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.fz button:hover:not(:disabled) {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+}
+.fz button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.fz-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.fz-tabs button {
+  flex: 1;
+  padding: 9px 0;
+}
+.fz-tabs button.activo,
+.fz-tabs button.activo:hover:not(:disabled) {
+  color: var(--bg);
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 600;
+}
+/* el sitio le da 56px de relleno a cada <section>; aquí no */
+.fz section {
+  padding: 0;
+}
+.fz .fz-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.fz-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.fz-nota {
+  font-size: 13px;
+  color: var(--muted);
+}
+.fz-error {
+  color: #e06c75;
+  font-size: 14px;
+  margin: 10px 0;
+}
+.fz-grande {
+  font-family: var(--mono);
+  font-size: clamp(36px, 9vw, 52px);
+  font-weight: 600;
+  line-height: 1.1;
+}
+.fz-valor {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.fz-txt-texto { color: var(--text); }
+.fz-txt-bien { color: var(--green); }
+.fz-txt-alerta { color: var(--amber); }
+.fz-txt-malo { color: #e06c75; }
+.fz-hero .fz-nota {
+  margin-bottom: 14px;
+}
+.fz-barra {
+  margin-top: 10px;
+}
+.fz-barra-top {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.fz-pista {
+  height: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.fz-pista-fina {
+  height: 6px;
+}
+.fz-relleno {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.fz-bien { background: var(--green); }
+.fz-alerta { background: var(--amber); }
+.fz-malo { background: #e06c75; }
+.fz-neutral { background: var(--border-bright); }
+.fz-ambar { background: var(--amber); }
+.fz-cian { background: var(--cyan); }
+.fz-ritmo {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 14px;
+}
+.fz-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.fz-grid .fz-card {
+  margin-bottom: 0;
+}
+.fz-grid + * {
+  margin-top: 14px;
+}
+.fz-cols {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+  margin-top: 8px;
+}
+.fz-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.fz-col-barra {
+  width: 100%;
+  background: var(--amber);
+  border-radius: 3px 3px 0 0;
+}
+.fz-col-barra.fz-sobre { background: #e06c75; }
+.fz-col-barra.fz-futuro { background: var(--border); }
+.fz-linea {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--muted);
+  pointer-events: none;
+}
+.fz-linea span {
+  position: absolute;
+  right: 0;
+  top: -18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+.fz-eje {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.fz-lista {
+  list-style: none;
+}
+.fz-lista li {
+  margin-top: 10px;
+}
+.fz-lista-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.fz-lista-top span:last-child {
+  font-family: var(--mono);
+  color: var(--muted);
+}
+.fz-hist {
+  display: flex;
+  gap: 10px;
+  height: 150px;
+  margin-top: 8px;
+}
+.fz-hist-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.fz-hist-area {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.fz-hist-barra {
+  width: 100%;
+  background: var(--border-bright);
+  border-radius: 4px 4px 0 0;
+}
+.fz-hist-barra.fz-actual { background: var(--amber); }
+.fz-hist-valor,
+.fz-hist-mes {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.fz-hist-mes {
+  margin-top: 4px;
+  text-transform: capitalize;
+}
+.fz-movs {
+  list-style: none;
+}
+.fz-movs li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.fz-movs li:last-child {
+  border-bottom: none;
+}
+.fz-mov-detalle {
+  font-size: 14px;
+}
+.fz-mov-monto {
+  font-family: var(--mono);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.fz-pie {
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+  margin-top: 8px;
+}
+.fz-login {
+  max-width: 360px;
+  margin: 18vh auto 0;
+}
+.fz-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.fz-login-form label {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.fz-login-form input {
+  font-family: var(--mono);
+  font-size: 16px; /* 16px evita el zoom automático en iPhone */
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.fz-login-form input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.fz-login-form button,
+.fz-login-form button:hover:not(:disabled) {
+  padding: 10px 0;
+  color: var(--bg);
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .fz-grid {
+    grid-template-columns: 1fr;
+  }
+  .fz .fz-card {
+    padding: 16px;
+  }
+  .fz-hist-valor {
+    display: none;
+  }
+}
