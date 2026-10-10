@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ZONA, crc, diaCR, estado, sinAnimacion } from "@/lib/finanzas-formato"
 import {
@@ -23,6 +23,7 @@ const VISTAS = [
 const REFRESCO_MS = 2 * 60 * 1000
 const JALON_MAX = 90 // px que baja el indicador como máximo
 const JALON_UMBRAL = 60 // px para que soltar actualice
+const indiceDe = id => VISTAS.findIndex(v => v.id === id)
 
 function hace(iso, ahora) {
   const min = Math.round((ahora - new Date(iso).getTime()) / 60000)
@@ -119,13 +120,17 @@ function Movimientos({ items, etiqueta }) {
 
 export default function FinanzasDashboard({ data, error }) {
   const router = useRouter()
-  const [vista, setVista] = useState("mes")
+  const [vista, setVista] = useState("mes") // la pestaña elegida
+  const [mostrada, setMostrada] = useState("mes") // lo que se ve (cambia cuando termina la salida)
+  const [entrada, setEntrada] = useState(true) // cascada de tarjetas solo al abrir la página
   const [ahora, setAhora] = useState(null)
   const [refrescando, setRefrescando] = useState(false)
   const [cierres, setCierres] = useState([])
   const cuerpo = useRef(null)
   const jalon = useRef(null)
-  const vistaAnterior = useRef(0)
+  const vistaRef = useRef(vista)
+  vistaRef.current = vista
+  const transicion = useRef({ saliendo: false, alto: 0, dir: 0 })
 
   function refrescar() {
     setRefrescando(true)
@@ -232,20 +237,63 @@ export default function FinanzasDashboard({ data, error }) {
     }
   }, [])
 
-  // Al cambiar de vista el contenido entra desde el lado hacia donde fuiste
   useEffect(() => {
-    const i = VISTAS.findIndex(v => v.id === vista)
-    const dir = Math.sign(i - vistaAnterior.current)
-    vistaAnterior.current = i
-    if (!dir || !cuerpo.current?.animate || sinAnimacion()) return
-    cuerpo.current.animate(
+    const t = setTimeout(() => setEntrada(false), 1200)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Cambio de vista en dos pasos: el contenido actual sale (fade corto hacia un lado),
+  // se cambia, y el nuevo entra desde el otro lado mientras el alto se ajusta suave.
+  useEffect(() => {
+    const el = cuerpo.current
+    const t = transicion.current
+    if (vista === mostrada || t.saliendo) return
+    if (!el?.animate || sinAnimacion()) {
+      setMostrada(vista)
+      return
+    }
+    t.saliendo = true
+    t.alto = el.offsetHeight
+    t.dir = Math.sign(indiceDe(vista) - indiceDe(mostrada))
+    const salida = el.animate(
       [
-        { transform: `translateX(${dir * 36}px)`, opacity: 0.2 },
-        { transform: "none", opacity: 1 },
+        { opacity: 1, transform: "none" },
+        { opacity: 0, transform: `translateX(${-t.dir * 14}px)` },
       ],
-      { duration: 320, easing: "cubic-bezier(0.3, 0.7, 0.2, 1)" }
+      { duration: 140, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" }
     )
-  }, [vista])
+    salida.onfinish = () => {
+      t.saliendo = false
+      // si tocaste otra pestaña durante la salida, se muestra la última;
+      // si volviste a la misma, solo entra de nuevo
+      if (vistaRef.current === mostrada) entrar()
+      else setMostrada(vistaRef.current)
+    }
+  }, [vista, mostrada])
+
+  useLayoutEffect(() => entrar(), [mostrada])
+
+  function entrar() {
+    const el = cuerpo.current
+    const t = transicion.current
+    if (!el?.getAnimations || !t.alto) return
+    el.getAnimations().forEach(a => a.cancel())
+    const alto = el.offsetHeight
+    el.animate(
+      [
+        { opacity: 0, transform: `translateX(${t.dir * 18}px)` },
+        { opacity: 1, transform: "none" },
+      ],
+      { duration: 340, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+    )
+    if (Math.abs(alto - t.alto) > 1) {
+      el.animate([{ height: `${t.alto}px` }, { height: `${alto}px` }], {
+        duration: 380,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      })
+    }
+    t.alto = 0
+  }
 
   // Periodos cerrados desde la última visita. Se guarda lo último que viste de cada periodo
   // en este navegador; si el periodo ya cambió, se avisa cómo cerró (una sola vez).
@@ -305,12 +353,12 @@ export default function FinanzasDashboard({ data, error }) {
     )
   }
 
-  const p = data[vista]
+  const p = data[mostrada]
   const tono = estado(p.pct)
   const ritmoBien = (p.ritmo || 0) >= 0
-  const esMes = vista === "mes"
+  const esMes = mostrada === "mes"
   const pasado = p.queda !== null && p.queda < 0
-  const indice = VISTAS.findIndex(v => v.id === vista)
+  const indice = indiceDe(vista)
   const movimientos = data.movimientos.filter(m => {
     const dia = diaCR(m.fecha)
     return dia >= p.inicio && dia <= p.fin
@@ -338,7 +386,7 @@ export default function FinanzasDashboard({ data, error }) {
         <Cierre key={c.id} cierre={c} onCerrar={() => setCierres(cs => cs.filter(x => x.id !== c.id))} />
       ))}
 
-      <div ref={cuerpo} className="fz-cuerpo">
+      <div ref={cuerpo} className={`fz-cuerpo ${entrada ? "fz-entrada" : ""}`}>
         <section className="fz-card fz-hero">
           <p className="fz-label">Te queda · {p.etiqueta}</p>
           <p className={`fz-grande fz-txt-${pasado ? "malo" : "texto"}`}>
@@ -395,7 +443,6 @@ export default function FinanzasDashboard({ data, error }) {
           />
           {esMes && data.mes.ahorroProyectado !== undefined && (
             <Dato
-              className="fz-aparece"
               titulo="Ahorro del mes (proyectado)"
               valor={crc(data.mes.ahorroProyectado)}
               tono={data.mes.ahorroProyectado >= 0 ? "bien" : "malo"}
@@ -408,24 +455,24 @@ export default function FinanzasDashboard({ data, error }) {
         </section>
 
         {/* key = vista: al cambiar de vista los gráficos se vuelven a dibujar */}
-        <CurvaAcumulada key={`curva-${vista}`} periodo={p} />
+        <CurvaAcumulada key={`curva-${mostrada}`} periodo={p} />
 
-        <GastoDiario key={`diario-${vista}`} periodo={p} />
+        <GastoDiario key={`diario-${mostrada}`} periodo={p} />
 
-        {vista !== "semana" && <Calendario key={`cal-${vista}`} periodo={p} />}
+        {mostrada !== "semana" && <Calendario key={`cal-${mostrada}`} periodo={p} />}
 
         <section className="fz-grid fz-grid-2">
           <Lista titulo="En qué se va" items={p.categorias} tono="ambar" />
           <MediosBarra items={p.medios} />
         </section>
 
-        <TopGastos key={`top-${vista}`} movimientos={movimientos} />
+        <TopGastos key={`top-${mostrada}`} movimientos={movimientos} />
 
         {esMes && <PorDiaSemana diario={data.mes.diario} />}
 
         {esMes && <Historico meses={data.historico} />}
 
-        <Movimientos key={`movs-${vista}`} items={movimientos} etiqueta={p.etiqueta} />
+        <Movimientos key={`movs-${mostrada}`} items={movimientos} etiqueta={p.etiqueta} />
       </div>
 
       <p className="fz-pie">
