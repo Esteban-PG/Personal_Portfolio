@@ -2,6 +2,18 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { ZONA, crc, diaCR, estado, sinAnimacion } from "@/lib/finanzas-formato"
+import {
+  Monto,
+  Anillos,
+  CurvaAcumulada,
+  GastoDiario,
+  Calendario,
+  PorDiaSemana,
+  MediosBarra,
+  TopGastos,
+  Cierre,
+} from "@/components/FinanzasGraficos"
 
 const VISTAS = [
   { id: "mes", nombre: "Mes" },
@@ -9,25 +21,8 @@ const VISTAS = [
   { id: "semana", nombre: "Semana" },
 ]
 const REFRESCO_MS = 2 * 60 * 1000
-const ZONA = "America/Costa_Rica"
-
-// Miles con punto, igual que en el Sheet (₡10.562)
-const miles = n => String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-const crc = v => (v === null || v === undefined ? "—" : `${v < 0 ? "-" : ""}₡${miles(v)}`)
-const pct = v => (v === null || v === undefined ? "—" : `${Math.round(v * 100)}%`)
-const diaCorto = k => `${Number(k.slice(8, 10))}/${Number(k.slice(5, 7))}`
-// "YYYY-MM-DD" en hora de Costa Rica, para comparar con inicio/fin del periodo
-const diaCR = iso => new Date(iso).toLocaleDateString("en-CA", { timeZone: ZONA })
-
-const sinAnimacion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-
-function estado(p) {
-  if (p === null || p === undefined) return "neutral"
-  if (p >= 1) return "malo"
-  if (p >= 0.8) return "alerta"
-  return "bien"
-}
+const JALON_MAX = 90 // px que baja el indicador como máximo
+const JALON_UMBRAL = 60 // px para que soltar actualice
 
 function hace(iso, ahora) {
   const min = Math.round((ahora - new Date(iso).getTime()) / 60000)
@@ -38,93 +33,12 @@ function hace(iso, ahora) {
   return h === 1 ? "hace 1 hora" : `hace ${h} horas`
 }
 
-// Lleva el número de su valor anterior al nuevo (al cambiar de vista o al refrescar).
-// El primer render ya muestra el valor real, así el HTML del servidor nunca dice ₡0.
-function useContador(objetivo, ms = 650) {
-  const [valor, setValor] = useState(objetivo)
-  const actual = useRef(objetivo)
-
-  useEffect(() => {
-    const desde = actual.current
-    if (typeof objetivo !== "number" || typeof desde !== "number" || desde === objetivo || sinAnimacion()) {
-      actual.current = objetivo
-      setValor(objetivo)
-      return
-    }
-    let raf
-    const t0 = performance.now()
-    const paso = t => {
-      const k = Math.min((t - t0) / ms, 1)
-      const v = desde + (objetivo - desde) * (1 - Math.pow(1 - k, 3))
-      actual.current = v
-      setValor(v)
-      if (k < 1) raf = requestAnimationFrame(paso)
-    }
-    raf = requestAnimationFrame(paso)
-    return () => cancelAnimationFrame(raf)
-  }, [objetivo, ms])
-
-  return valor
-}
-
-function Monto({ valor }) {
-  return crc(useContador(valor))
-}
-
-function Barra({ valor, tono, etiqueta, detalle }) {
-  const ancho = Math.min(Math.max(valor || 0, 0), 1) * 100
-  return (
-    <div className="fz-barra">
-      <div className="fz-barra-top">
-        <span>{etiqueta}</span>
-        <span>{detalle}</span>
-      </div>
-      <div className="fz-pista">
-        <div className={`fz-relleno fz-${tono}`} style={{ width: `${ancho}%` }} />
-      </div>
-    </div>
-  )
-}
-
 function Dato({ titulo, valor, nota, tono, className = "" }) {
   return (
     <div className={`fz-card fz-dato ${className}`}>
       <p className="fz-label">{titulo}</p>
       <p className={`fz-valor ${tono ? `fz-txt-${tono}` : ""}`}>{valor}</p>
       {nota && <p className="fz-nota">{nota}</p>}
-    </div>
-  )
-}
-
-function GastoDiario({ periodo }) {
-  const valores = periodo.diario.map(d => d.gasto || 0)
-  const ideal = periodo.presupuesto ? periodo.presupuesto / periodo.dias : 0
-  const max = Math.max(...valores, ideal, 1)
-  return (
-    <div className="fz-card">
-      <p className="fz-label">Gasto por día</p>
-      <div className="fz-cols" role="img" aria-label="Gasto por día del periodo">
-        {ideal > 0 && (
-          <div className="fz-linea" style={{ bottom: `${(ideal / max) * 100}%` }}>
-            <span>{crc(ideal)}/día</span>
-          </div>
-        )}
-        {periodo.diario.map((d, i) => (
-          <div key={d.dia} className="fz-col" title={`${diaCorto(d.dia)}: ${d.gasto === null ? "—" : crc(d.gasto)}`}>
-            <div
-              className={`fz-col-barra ${d.gasto === null ? "fz-futuro" : d.gasto > ideal ? "fz-sobre" : ""}`}
-              style={{
-                "--i": i,
-                height: d.gasto === null ? "3px" : `${Math.max((d.gasto / max) * 100, d.gasto > 0 ? 2 : 0)}%`,
-              }}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="fz-eje">
-        <span>{diaCorto(periodo.inicio)}</span>
-        <span>{diaCorto(periodo.fin)}</span>
-      </div>
     </div>
   )
 }
@@ -157,7 +71,7 @@ function Lista({ titulo, items, tono }) {
 function Historico({ meses }) {
   const max = Math.max(...meses.map(m => m.gasto), 1)
   return (
-    <div className="fz-card fz-aparece">
+    <div className="fz-card">
       <p className="fz-label">Gasto variable · últimos 6 meses</p>
       <div className="fz-hist">
         {meses.map((m, i) => (
@@ -208,6 +122,17 @@ export default function FinanzasDashboard({ data, error }) {
   const [vista, setVista] = useState("mes")
   const [ahora, setAhora] = useState(null)
   const [refrescando, setRefrescando] = useState(false)
+  const [cierres, setCierres] = useState([])
+  const cuerpo = useRef(null)
+  const jalon = useRef(null)
+  const vistaAnterior = useRef(0)
+
+  function refrescar() {
+    setRefrescando(true)
+    router.refresh()
+  }
+  const refrescarRef = useRef(refrescar)
+  refrescarRef.current = refrescar
 
   // Refresca cada 2 minutos solo con la pestaña visible, y apenas vuelves a ella
   useEffect(() => {
@@ -230,15 +155,127 @@ export default function FinanzasDashboard({ data, error }) {
 
   useEffect(() => setRefrescando(false), [data])
 
-  function refrescar() {
-    setRefrescando(true)
-    router.refresh()
-  }
+  // Gestos táctiles: deslizar de lado cambia de vista; jalar hacia abajo desde arriba actualiza
+  // (instalada como app en iOS no existe el "pull to refresh" del navegador).
+  useEffect(() => {
+    let x0 = null
+    let y0 = 0
+    let arriba = false
+    let modo = null // null mientras decide · "deslizar" · "jalar" · "nada"
+
+    function pintar(d) {
+      const el = jalon.current
+      if (!el) return
+      el.style.transition = "none"
+      el.style.opacity = String(Math.min(d / JALON_UMBRAL, 1))
+      el.style.transform = `translateY(${d - 48}px)`
+      el.firstChild.style.transform = `rotate(${d * 4}deg)`
+      el.classList.toggle("fz-listo", d >= JALON_UMBRAL)
+    }
+    function soltar() {
+      const el = jalon.current
+      if (!el) return
+      el.style.transition = el.style.opacity = el.style.transform = el.firstChild.style.transform = ""
+      el.classList.remove("fz-listo")
+    }
+
+    function inicio(e) {
+      if (e.touches.length !== 1) {
+        x0 = null
+        return
+      }
+      x0 = e.touches[0].clientX
+      y0 = e.touches[0].clientY
+      arriba = window.scrollY <= 0
+      modo = null
+    }
+    function mover(e) {
+      if (x0 === null || modo === "nada" || modo === "deslizar") return
+      const dx = e.touches[0].clientX - x0
+      const dy = e.touches[0].clientY - y0
+      if (!modo) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+        if (Math.abs(dx) > Math.abs(dy) * 1.5) modo = "deslizar"
+        else if (dy > 0 && arriba) modo = "jalar"
+        else modo = "nada"
+      }
+      if (modo === "jalar") pintar(Math.min(Math.max(dy, 0) * 0.5, JALON_MAX))
+    }
+    function fin(e) {
+      if (x0 === null) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - x0
+      const dy = t.clientY - y0
+      if (modo === "deslizar" && Math.abs(dx) > 60) {
+        setVista(actual => {
+          const i = VISTAS.findIndex(v => v.id === actual) + (dx < 0 ? 1 : -1)
+          return VISTAS[Math.min(Math.max(i, 0), VISTAS.length - 1)].id
+        })
+      }
+      if (modo === "jalar") {
+        soltar()
+        if (Math.min(dy * 0.5, JALON_MAX) >= JALON_UMBRAL) refrescarRef.current()
+      }
+      x0 = null
+    }
+
+    const pasivo = { passive: true }
+    document.addEventListener("touchstart", inicio, pasivo)
+    document.addEventListener("touchmove", mover, pasivo)
+    document.addEventListener("touchend", fin, pasivo)
+    document.addEventListener("touchcancel", soltar, pasivo)
+    return () => {
+      document.removeEventListener("touchstart", inicio, pasivo)
+      document.removeEventListener("touchmove", mover, pasivo)
+      document.removeEventListener("touchend", fin, pasivo)
+      document.removeEventListener("touchcancel", soltar, pasivo)
+    }
+  }, [])
+
+  // Al cambiar de vista el contenido entra desde el lado hacia donde fuiste
+  useEffect(() => {
+    const i = VISTAS.findIndex(v => v.id === vista)
+    const dir = Math.sign(i - vistaAnterior.current)
+    vistaAnterior.current = i
+    if (!dir || !cuerpo.current?.animate || sinAnimacion()) return
+    cuerpo.current.animate(
+      [
+        { transform: `translateX(${dir * 36}px)`, opacity: 0.2 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: 320, easing: "cubic-bezier(0.3, 0.7, 0.2, 1)" }
+    )
+  }, [vista])
+
+  // Periodos cerrados desde la última visita. Se guarda lo último que viste de cada periodo
+  // en este navegador; si el periodo ya cambió, se avisa cómo cerró (una sola vez).
+  useEffect(() => {
+    if (!data) return
+    const nuevos = []
+    for (const v of VISTAS) {
+      const p = data[v.id]
+      if (!p) continue
+      const clave = `fz-cierre-${v.id}`
+      try {
+        const antes = JSON.parse(localStorage.getItem(clave) || "null")
+        if (antes && antes.fin < p.inicio && antes.presupuesto) nuevos.push({ ...antes, id: v.id, vista: v.nombre })
+        const { inicio, fin, etiqueta, presupuesto, gastado } = p
+        localStorage.setItem(clave, JSON.stringify({ inicio, fin, etiqueta, presupuesto, gastado }))
+      } catch {}
+    }
+    if (nuevos.length) setCierres(c => [...c.filter(x => !nuevos.some(n => n.id === x.id)), ...nuevos])
+  }, [data])
 
   async function salir() {
     await fetch("/api/finanzas/logout", { method: "POST" })
     router.refresh()
   }
+
+  const indicador = (
+    <div ref={jalon} className={`fz-jalar ${refrescando ? "fz-cargando" : ""}`} aria-hidden="true">
+      <span>↻</span>
+    </div>
+  )
 
   const encabezado = (
     <header className="fz-head">
@@ -263,6 +300,7 @@ export default function FinanzasDashboard({ data, error }) {
           <p className="fz-error">No pude cargar los datos.</p>
           <p className="fz-nota">{error}</p>
         </div>
+        {indicador}
       </>
     )
   }
@@ -296,77 +334,106 @@ export default function FinanzasDashboard({ data, error }) {
         ))}
       </div>
 
-      <section className="fz-card fz-hero">
-        <p className="fz-label">
-          Te queda · {p.etiqueta}
-        </p>
-        <p className={`fz-grande fz-txt-${pasado ? "malo" : "texto"}`}>
-          <Monto valor={p.queda} />
-        </p>
-        <p className="fz-nota">
-          de {crc(p.presupuesto)} · {p.diasRestantes} {p.diasRestantes === 1 ? "día" : "días"} por delante
-        </p>
-        <Barra valor={p.pct} tono={tono} etiqueta="gastado" detalle={`${crc(p.gastado)} · ${pct(p.pct)}`} />
-        <Barra valor={p.tiempoPct} tono="neutral" etiqueta="tiempo" detalle={`día ${p.diasTranscurridos} de ${p.dias}`} />
-        {p.ritmo !== null && (
-          <p className={`fz-ritmo fz-txt-${ritmoBien ? "bien" : "malo"}`}>
-            {ritmoBien
-              ? `Vas ${crc(p.ritmo)} por debajo del ritmo`
-              : `Vas ${crc(-p.ritmo)} por encima del ritmo`}
+      {cierres.map(c => (
+        <Cierre key={c.id} cierre={c} onCerrar={() => setCierres(cs => cs.filter(x => x.id !== c.id))} />
+      ))}
+
+      <div ref={cuerpo} className="fz-cuerpo">
+        <section className="fz-card fz-hero">
+          <p className="fz-label">Te queda · {p.etiqueta}</p>
+          <p className={`fz-grande fz-txt-${pasado ? "malo" : "texto"}`}>
+            <Monto valor={p.queda} />
           </p>
-        )}
-      </section>
+          <p className="fz-nota">
+            de {crc(p.presupuesto)} · {p.diasRestantes} {p.diasRestantes === 1 ? "día" : "días"} por delante
+          </p>
+          <div className="fz-hero-anillos">
+            <Anillos gasto={p.pct} tiempo={p.tiempoPct} tono={tono} />
+            <ul className="fz-leyenda">
+              <li>
+                <i className={`fz-punto fz-${tono}`} />
+                <span className="fz-leyenda-nombre">gastado</span>
+                <span className="fz-leyenda-monto">
+                  <Monto valor={p.gastado} />
+                </span>
+              </li>
+              <li>
+                <i className="fz-punto fz-neutral" />
+                <span className="fz-leyenda-nombre">tiempo</span>
+                <span className="fz-leyenda-monto">
+                  día {p.diasTranscurridos} de {p.dias}
+                </span>
+              </li>
+              {p.ritmo !== null && (
+                <li className={`fz-ritmo fz-txt-${ritmoBien ? "bien" : "malo"}`}>
+                  {ritmoBien ? `${crc(p.ritmo)} por debajo del ritmo` : `${crc(-p.ritmo)} por encima del ritmo`}
+                </li>
+              )}
+            </ul>
+          </div>
+        </section>
 
-      <section className="fz-grid">
-        {pasado ? (
+        <section className="fz-grid">
+          {pasado ? (
+            <Dato
+              titulo="Puedes gastar por día"
+              valor="Sin margen"
+              tono="malo"
+              nota={`Te pasaste por ${crc(-p.queda)} · cierras en ${crc(p.proyeccion)}`}
+            />
+          ) : (
+            <Dato
+              titulo="Puedes gastar por día"
+              valor={<Monto valor={p.porDia} />}
+              nota={`Si sigues así cierras en ${crc(p.proyeccion)}`}
+            />
+          )}
           <Dato
-            titulo="Puedes gastar por día"
-            valor="Sin margen"
-            tono="malo"
-            nota={`Te pasaste por ${crc(-p.queda)} · cierras en ${crc(p.proyeccion)}`}
+            titulo="Gasto variable"
+            valor={<Monto valor={p.gastoVariable} />}
+            nota={`Tarjeta ${crc(p.tarjeta)} · SINPE/efectivo ${crc(p.manual)}`}
           />
-        ) : (
-          <Dato
-            titulo="Puedes gastar por día"
-            valor={<Monto valor={p.porDia} />}
-            nota={`Si sigues así cierras en ${crc(p.proyeccion)}`}
-          />
-        )}
-        <Dato
-          titulo="Gasto variable"
-          valor={<Monto valor={p.gastoVariable} />}
-          nota={`Tarjeta ${crc(p.tarjeta)} · SINPE/efectivo ${crc(p.manual)}`}
-        />
-        {esMes && data.mes.ahorroProyectado !== undefined && (
-          <Dato
-            className="fz-aparece"
-            titulo="Ahorro del mes (proyectado)"
-            valor={crc(data.mes.ahorroProyectado)}
-            tono={data.mes.ahorroProyectado >= 0 ? "bien" : "malo"}
-            nota={`Ingreso ${crc(data.mes.ingreso)} · fijos ${crc(data.mes.fijos)}${data.mes.extraordinarios ? ` · extraordinarios ${crc(data.mes.extraordinarios)}` : ""}`}
-          />
-        )}
-        {data.mes.ahorroAcumulado !== undefined && (
-          <Dato titulo="Ahorro acumulado" valor={crc(data.mes.ahorroAcumulado)} nota={`${p.transacciones} gastos en el periodo`} />
-        )}
-      </section>
+          {esMes && data.mes.ahorroProyectado !== undefined && (
+            <Dato
+              className="fz-aparece"
+              titulo="Ahorro del mes (proyectado)"
+              valor={crc(data.mes.ahorroProyectado)}
+              tono={data.mes.ahorroProyectado >= 0 ? "bien" : "malo"}
+              nota={`Ingreso ${crc(data.mes.ingreso)} · fijos ${crc(data.mes.fijos)}${data.mes.extraordinarios ? ` · extraordinarios ${crc(data.mes.extraordinarios)}` : ""}`}
+            />
+          )}
+          {data.mes.ahorroAcumulado !== undefined && (
+            <Dato titulo="Ahorro acumulado" valor={crc(data.mes.ahorroAcumulado)} nota={`${p.transacciones} gastos en el periodo`} />
+          )}
+        </section>
 
-      {/* key = vista: al cambiar de vista las columnas vuelven a crecer */}
-      <GastoDiario key={`diario-${vista}`} periodo={p} />
+        {/* key = vista: al cambiar de vista los gráficos se vuelven a dibujar */}
+        <CurvaAcumulada key={`curva-${vista}`} periodo={p} />
 
-      <section className="fz-grid fz-grid-2">
-        <Lista titulo="En qué se va" items={p.categorias} tono="ambar" />
-        <Lista titulo="Medio de pago" items={p.medios} tono="cian" />
-      </section>
+        <GastoDiario key={`diario-${vista}`} periodo={p} />
 
-      {esMes && <Historico meses={data.historico} />}
+        {vista !== "semana" && <Calendario key={`cal-${vista}`} periodo={p} />}
 
-      <Movimientos key={`movs-${vista}`} items={movimientos} etiqueta={p.etiqueta} />
+        <section className="fz-grid fz-grid-2">
+          <Lista titulo="En qué se va" items={p.categorias} tono="ambar" />
+          <MediosBarra items={p.medios} />
+        </section>
+
+        <TopGastos key={`top-${vista}`} movimientos={movimientos} />
+
+        {esMes && <PorDiaSemana diario={data.mes.diario} />}
+
+        {esMes && <Historico meses={data.historico} />}
+
+        <Movimientos key={`movs-${vista}`} items={movimientos} etiqueta={p.etiqueta} />
+      </div>
 
       <p className="fz-pie">
         {data.incluyeManual ? "El presupuesto cuenta tarjeta, SINPE y efectivo." : "El presupuesto cuenta solo la tarjeta."} Sin
         gastos fijos ni extraordinarios.
       </p>
+
+      {indicador}
     </>
   )
 }

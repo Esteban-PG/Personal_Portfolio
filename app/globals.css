@@ -1316,17 +1316,6 @@ button.rn-day-btn:hover {
 .fz-hero .fz-nota {
   margin-bottom: 14px;
 }
-.fz-barra {
-  margin-top: 10px;
-}
-.fz-barra-top {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
 .fz-pista {
   height: 10px;
   background: var(--surface-2);
@@ -1350,9 +1339,8 @@ button.rn-day-btn:hover {
 .fz-cian { background: var(--cyan); }
 .fz-ritmo {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin-top: 14px;
 }
 .fz-grid {
   display: grid;
@@ -1555,16 +1543,21 @@ button.rn-day-btn:hover {
   40%, 80% { transform: translateX(6px); }
 }
 /* al abrir: cada bloque entra en cascada */
-.fz .wrap > * {
+.fz .wrap > :not(.fz-jalar),
+.fz-cuerpo > * {
   animation: fz-subir 0.45s ease both;
 }
-.fz .wrap > :nth-child(2) { animation-delay: 0.05s; }
-.fz .wrap > :nth-child(3) { animation-delay: 0.1s; }
-.fz .wrap > :nth-child(4) { animation-delay: 0.15s; }
-.fz .wrap > :nth-child(5) { animation-delay: 0.2s; }
-.fz .wrap > :nth-child(6) { animation-delay: 0.25s; }
-.fz .wrap > :nth-child(7) { animation-delay: 0.3s; }
-.fz .wrap > :nth-child(n + 8) { animation-delay: 0.35s; }
+.fz .wrap > .fz-cuerpo {
+  animation: none;
+}
+.fz .wrap > :nth-child(2),
+.fz-cuerpo > :nth-child(2) { animation-delay: 0.05s; }
+.fz .wrap > :nth-child(3),
+.fz-cuerpo > :nth-child(3) { animation-delay: 0.1s; }
+.fz-cuerpo > :nth-child(4) { animation-delay: 0.15s; }
+.fz-cuerpo > :nth-child(5) { animation-delay: 0.2s; }
+.fz-cuerpo > :nth-child(6) { animation-delay: 0.25s; }
+.fz-cuerpo > :nth-child(n + 7) { animation-delay: 0.3s; }
 /* lo que solo existe en la vista Mes entra al volver a ella */
 .fz .fz-aparece {
   animation: fz-subir 0.35s ease both;
@@ -1613,5 +1606,427 @@ button.rn-day-btn:hover {
   .fz *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ---------- /finanzas: gráficos ---------- */
+.fz-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.fz-sel {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--amber);
+  white-space: nowrap;
+  animation: fz-subir 0.2s ease both;
+}
+.fz-punto {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.fz-punto-hueco {
+  border: 1.5px dashed var(--muted);
+}
+.fz-leyenda {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+.fz-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fz-leyenda-nombre {
+  color: var(--muted);
+}
+.fz-leyenda-monto {
+  margin-left: auto;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.fz-leyenda-fila {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* anillos del resumen */
+.fz-hero-anillos {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.fz-hero-anillos .fz-leyenda {
+  flex: 1;
+  min-width: 0;
+}
+.fz-anillos {
+  position: relative;
+  flex: none;
+  width: 112px;
+  height: 112px;
+}
+.fz-anillos svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.fz-anillo-pista,
+.fz-anillo {
+  fill: none;
+  stroke-width: 9;
+}
+.fz-anillo-pista {
+  stroke: var(--surface-2);
+}
+.fz-anillo {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.3, 0.7, 0.2, 1), stroke 0.3s ease;
+  animation: fz-llenar 0.9s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+.fz-trazo-bien { stroke: var(--green); }
+.fz-trazo-alerta { stroke: var(--amber); }
+.fz-trazo-malo { stroke: #e06c75; }
+.fz-trazo-neutral { stroke: var(--border-bright); }
+.fz-anillos-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* curva acumulada */
+.fz-curva {
+  position: relative;
+  margin-top: 8px;
+}
+.fz-curva svg {
+  display: block;
+  overflow: visible;
+}
+.fz-curva-tope {
+  stroke: var(--border-bright);
+  stroke-dasharray: 2 4;
+}
+.fz-curva-ideal {
+  fill: none;
+  stroke: var(--border-bright);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  animation: fz-aparecer 0.5s ease 0.5s both;
+}
+.fz-curva-area {
+  fill: var(--amber);
+  opacity: 0.12;
+  animation: fz-aparecer-area 0.6s ease 0.4s both;
+}
+.fz-curva-real {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  animation: fz-dibujar 0.9s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.fz-curva-proy {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-dasharray: 3 5;
+  opacity: 0.7;
+  animation: fz-aparecer 0.4s ease 0.9s both;
+}
+.fz-curva-punto {
+  fill: var(--amber);
+  animation: fz-aparecer 0.3s ease 0.85s both;
+}
+.fz-curva-pulso {
+  fill: var(--amber);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fz-pulso 2s ease-out 1.1s infinite both;
+}
+.fz-curva-area.fz-sobre { fill: #e06c75; }
+.fz-curva-real.fz-sobre,
+.fz-curva-proy.fz-sobre { stroke: #e06c75; }
+.fz-curva-punto.fz-sobre,
+.fz-curva-pulso.fz-sobre { fill: #e06c75; }
+.fz-curva-etq {
+  position: absolute;
+  right: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* columnas: tocar una */
+.fz-col {
+  cursor: pointer;
+}
+.fz-col-barra,
+.fz-hist-barra {
+  transition: opacity 0.2s ease, height 0.4s ease;
+}
+.fz-con-sel .fz-col:not(.fz-elegida) .fz-col-barra,
+.fz-con-sel .fz-semana-col:not(.fz-elegida) .fz-hist-barra {
+  opacity: 0.35;
+}
+
+/* calendario */
+.fz-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 8px;
+}
+.fz-cal-dia {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+  text-align: center;
+}
+.fz-cal-celda {
+  aspect-ratio: 1;
+  max-height: 52px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 4px 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--amber) var(--nivel), var(--surface-2));
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+  animation: fz-pop 0.35s cubic-bezier(0.3, 0.7, 0.2, 1.3) backwards;
+  animation-delay: calc(var(--d, 0) * 25ms);
+}
+.fz-cal-celda.fz-oscuro { color: var(--bg); }
+.fz-cal-celda.fz-sobre { border-color: #e06c75; }
+.fz-cal-celda.fz-futuro {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--dim);
+}
+.fz-cal-celda.fz-elegida {
+  border-color: var(--text);
+  transform: scale(1.08);
+}
+.fz-cal-escala {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+}
+.fz-cal-escala i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--amber) var(--nivel), var(--surface-2));
+}
+.fz-cal-nota {
+  margin-left: auto;
+}
+
+/* promedio por día de la semana */
+.fz-semana {
+  display: flex;
+  gap: 8px;
+  height: 130px;
+  margin: 8px 0 10px;
+}
+.fz-semana-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* medio de pago apilado */
+.fz-apilada {
+  height: 14px;
+  margin: 10px 0 14px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.fz-apilada-relleno {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+  transform-origin: left;
+  animation: fz-crecer-x 0.8s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+.fz-segmento {
+  height: 100%;
+  transition: width 0.5s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+/* top gastos */
+.fz-top li {
+  animation: fz-subir 0.35s ease both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+.fz-top .fz-lista-top span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fz-top-n {
+  font-family: var(--mono);
+  color: var(--amber);
+  margin-right: 4px;
+}
+
+/* aviso de periodo cerrado */
+.fz-cierre {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+}
+.fz-cierre-bien { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+.fz-cierre-malo { border-color: color-mix(in srgb, #e06c75 45%, var(--border)); }
+.fz-cierre-texto {
+  flex: 1;
+}
+.fz-cierre .fz-label {
+  margin-bottom: 2px;
+}
+.fz-check {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fz-check circle,
+.fz-check path {
+  stroke-dasharray: 1;
+  animation: fz-dibujar 0.6s ease 0.3s both;
+}
+.fz-check path {
+  animation-delay: 0.75s;
+}
+.fz-cierre-icono {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e06c75;
+  border-radius: 50%;
+  color: #e06c75;
+  font-family: var(--mono);
+  font-weight: 700;
+  animation: fz-pop 0.4s cubic-bezier(0.3, 0.7, 0.2, 1.3) 0.3s both;
+}
+
+/* jalar para actualizar */
+.fz-jalar {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  z-index: 50;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateY(-48px);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+.fz-jalar span {
+  display: inline-block;
+}
+.fz-jalar.fz-listo,
+.fz-jalar.fz-cargando {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+}
+.fz-jalar.fz-cargando {
+  opacity: 1;
+  transform: translateY(14px);
+}
+.fz-jalar.fz-cargando span {
+  animation: fz-girar 0.8s linear infinite;
+}
+
+@keyframes fz-dibujar {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes fz-llenar {
+  from { stroke-dashoffset: var(--c); }
+}
+@keyframes fz-aparecer {
+  from { opacity: 0; }
+}
+@keyframes fz-aparecer-area {
+  from { opacity: 0; }
+  to { opacity: 0.12; }
+}
+@keyframes fz-pulso {
+  from { transform: scale(1); opacity: 0.6; }
+  to { transform: scale(3.5); opacity: 0; }
+}
+@keyframes fz-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+
+@media (max-width: 560px) {
+  .fz-hero-anillos {
+    gap: 16px;
+  }
+  .fz-anillos {
+    width: 96px;
+    height: 96px;
+  }
+  .fz-anillos-pct {
+    font-size: 16px;
+  }
+  .fz-cal-nota {
+    margin-left: 0;
+    width: 100%;
   }
 }
