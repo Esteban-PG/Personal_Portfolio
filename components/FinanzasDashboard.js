@@ -198,6 +198,75 @@ function SaldoEsperado({ saldo: s }) {
   )
 }
 
+// Quincena: 12 y 26 (o el viernes antes si cae en fin de semana), alrededor de las 6:00 p. m. hora de Costa Rica.
+const DIAS_PAGO = [12, 26]
+const HORA_PAGO = 18
+const CR_UTC = 6 // Costa Rica = UTC-6, sin horario de verano
+
+function diaPago(y, m, d) {
+  const dow = new Date(Date.UTC(y, m, d)).getUTCDay()
+  const ajuste = dow === 6 ? 1 : dow === 0 ? 2 : 0
+  return new Date(Date.UTC(y, m, d - ajuste, HORA_PAGO + CR_UTC))
+}
+
+// Último pago ya hecho y el siguiente, alrededor de `ms`
+function pagosAlrededor(ms) {
+  const hoy = new Date(ms - CR_UTC * 3600000)
+  const y = hoy.getUTCFullYear()
+  const m = hoy.getUTCMonth()
+  const fechas = []
+  for (let k = -1; k <= 1; k++) for (const d of DIAS_PAGO) fechas.push(diaPago(y, m + k, d))
+  const i = fechas.findIndex(f => f.getTime() > ms)
+  return { anterior: fechas[i - 1], siguiente: fechas[i] }
+}
+
+function CuentaRegresiva({ proximoPago }) {
+  const [ahora, setAhora] = useState(null)
+  useEffect(() => {
+    setAhora(Date.now())
+    const t = setInterval(() => setAhora(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  if (!ahora) return null
+
+  const { anterior, siguiente } = pagosAlrededor(ahora)
+  const falta = Math.max(siguiente.getTime() - ahora, 0)
+  const avance = (ahora - anterior.getTime()) / (siguiente.getTime() - anterior.getTime())
+  const s = Math.floor(falta / 1000)
+  const partes = [
+    { valor: Math.floor(s / 86400), nombre: "días" },
+    { valor: Math.floor((s % 86400) / 3600), nombre: "horas" },
+    { valor: Math.floor((s % 3600) / 60), nombre: "min" },
+    { valor: s % 60, nombre: "seg" },
+  ]
+  const fecha = siguiente.toLocaleDateString("es-CR", { timeZone: ZONA, weekday: "long", day: "numeric", month: "long" })
+  const monto = proximoPago && proximoPago.monto ? proximoPago.monto : null
+  const hoyPagan = partes[0].valor === 0 && diaCR(siguiente.toISOString()) === diaCR(new Date(ahora).toISOString())
+
+  return (
+    <section className="fz-card fz-cuenta">
+      <div className="fz-card-top">
+        <p className="fz-label">{hoyPagan ? "Hoy pagan" : "Próximo pago"}</p>
+        {monto && <span className="fz-cuenta-monto">{crc(monto)}</span>}
+      </div>
+      <div className="fz-cuenta-reloj" role="timer" aria-live="off">
+        {partes.map((x, i) => (
+          <div key={x.nombre} className="fz-cuenta-bloque">
+            <span className="fz-cuenta-num">{String(x.valor).padStart(i === 0 ? 1 : 2, "0")}</span>
+            <span className="fz-cuenta-nombre">{x.nombre}</span>
+          </div>
+        ))}
+      </div>
+      <div className="fz-cuenta-pista" aria-hidden="true">
+        <i style={{ width: `${Math.min(avance, 1) * 100}%` }} />
+      </div>
+      <p className="fz-nota">
+        <span className="fz-cuenta-fecha">{fecha}</span> · cerca de las 6:00 p. m.
+      </p>
+    </section>
+  )
+}
+
 function Movimientos({ items, etiqueta }) {
   return (
     <div className="fz-card">
@@ -526,6 +595,8 @@ export default function FinanzasDashboard({ data, error }) {
             </ul>
           </div>
         </section>
+
+        <CuentaRegresiva proximoPago={data.saldo && data.saldo.proximoPago} />
 
         <PagosFijos fijos={data.fijos} etiqueta={data.mes.etiqueta} />
 

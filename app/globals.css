@@ -2224,3 +2224,77 @@ button.rn-day-btn:hover {
 .fz-saldo-cuentas .fz-saldo-total span:first-child {
   color: inherit;
 }
+
+/* Cuenta regresiva al próximo pago */
+.fz .fz-card.fz-cuenta {
+  border-color: rgba(127, 180, 202, 0.45);
+  background: linear-gradient(160deg, rgba(127, 180, 202, 0.1), rgba(127, 180, 202, 0.01) 60%), var(--surface);
+}
+.fz-cuenta .fz-label {
+  color: var(--cyan);
+}
+.fz-cuenta-monto {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+}
+.fz-cuenta-reloj {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.fz-cuenta-bloque {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 4px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.fz-cuenta-num {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.fz-cuenta-bloque:first-child .fz-cuenta-num {
+  color: var(--cyan);
+}
+.fz-cuenta-nombre {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.fz-cuenta-pista {
+  height: 6px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.fz-cuenta-pista i {
+  display: block;
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 999px;
+}
+.fz-cuenta-fecha {
+  color: var(--text);
+}
+.fz-cuenta-fecha::first-letter {
+  text-transform: uppercase;
+}
+@media (max-width: 380px) {
+  .fz-cuenta-num {
+    font-size: 26px;
+  }
+}

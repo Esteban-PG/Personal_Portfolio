@@ -49,3 +49,9 @@ El resumen trae `saldo`: ahorro inicial + quincenas ya pagadas (12 y 26, o el vi
 en fin de semana) + ingresos extra − todo lo gastado (variable, fijos y extraordinarios), contando
 desde "Contar desde" en la pestaña **Ahorro**. Se muestra en todas las vistas (`SaldoEsperado`).
 Incluye compras con tarjeta aunque no se haya pagado la tarjeta: compáralo con cuentas − deuda de tarjeta.
+
+## Cuenta regresiva al próximo pago
+
+`CuentaRegresiva` calcula el próximo pago en el navegador (no depende del script): 12 y 26, o el
+viernes antes si cae en fin de semana, a las 6:00 p. m. hora de Costa Rica. No toma en cuenta feriados.
+Si el resumen trae `saldo.proximoPago.monto`, muestra el monto.
