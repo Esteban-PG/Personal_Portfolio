@@ -9,6 +9,10 @@ const nextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
           { key: "Cache-Control", value: "private, no-store, max-age=0" },
           { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
       {
@@ -17,6 +21,18 @@ const nextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
           { key: "Cache-Control", value: "private, no-store, max-age=0" },
           { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+      {
+        source: "/api/finanzas/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
     ]

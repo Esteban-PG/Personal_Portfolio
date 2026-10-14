@@ -21,8 +21,19 @@ BAC → Gmail → Apps Script (cada minuto) → Google Sheet
 
 Ninguna de estas va en el repo (es público). Después de agregarlas o cambiarlas, hay que volver a desplegar.
 
-Opcional: si el proyecto tiene Upstash Redis (el mismo de /running), se limita a 8 intentos
-de clave incorrectos por IP cada 15 minutos. Sin Redis, cada intento fallido igual espera 1 segundo.
+## Seguridad
+
+- Sin sesión válida, el servidor solo manda el formulario de la clave: ni el HTML ni el payload RSC
+  traen datos. La URL y la clave del script nunca llegan al navegador.
+- Sesión: cookie httpOnly + Secure + SameSite=strict, firmada con HMAC y con vencimiento (30 días).
+- Con Upstash Redis (el mismo de /running): 8 claves incorrectas por IP cada 15 minutos, y si hay
+  40 incorrectas en una hora sumando todas las IP, el inicio de sesión se cierra para todos esa hora
+  (las sesiones abiertas siguen funcionando). Cada intento fallido además espera 1 segundo.
+- Avisos por correo (los envía el Apps Script desde tu Gmail, `accion: "aviso-acceso"`): cada
+  inicio de sesión, cuando una IP agota sus intentos, y cuando se cierra el inicio de sesión.
+- Encabezados: noindex, no-store, sin iframes (X-Frame-Options / frame-ancestors), nosniff.
+- ¿Alguien entró sin ser tú? Cambia `FINANZAS_PASSWORD` y `FINANZAS_SESSION_SECRET` en Vercel y
+  vuelve a desplegar: eso cierra la sesión en todos los dispositivos.
 
 ## Archivos
 
