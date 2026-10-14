@@ -42,3 +42,10 @@ El resumen del script trae `fijos`: un elemento por gasto fijo vigente con `pago
 `pagado` y `estado` (`pagado` / `parcial` / `pendiente`). La página lo muestra en la vista Mes
 (`PagosFijos` en `components/FinanzasDashboard.js`). La configuración vive en la pestaña
 **Fijos** del Sheet (palabras clave separadas por coma y "Pagos por mes", p. ej. limpieza = 4).
+
+## Deberías tener hoy
+
+El resumen trae `saldo`: ahorro inicial + quincenas ya pagadas (12 y 26, o el viernes antes si caen
+en fin de semana) + ingresos extra − todo lo gastado (variable, fijos y extraordinarios), contando
+desde "Contar desde" en la pestaña **Ahorro**. Se muestra en todas las vistas (`SaldoEsperado`).
+Incluye compras con tarjeta aunque no se haya pagado la tarjeta: compáralo con cuentas − deuda de tarjeta.

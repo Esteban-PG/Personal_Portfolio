@@ -2103,3 +2103,38 @@ button.rn-day-btn:hover {
     animation: none;
   }
 }
+
+/* Deberías tener hoy */
+.fz-saldo .fz-grande {
+  margin: 4px 0 2px;
+}
+.fz-saldo-barra {
+  margin: 16px 0 10px;
+}
+.fz-saldo-cuentas {
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.fz-saldo-cuentas li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.fz-saldo-cuentas li span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.fz-saldo-cuentas .fz-saldo-total {
+  border-bottom: none;
+  font-weight: 600;
+}
+.fz-saldo-cuentas .fz-saldo-total span:first-child {
+  color: inherit;
+}

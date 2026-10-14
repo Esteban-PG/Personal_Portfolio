@@ -151,6 +151,69 @@ function PagosFijos({ fijos, etiqueta }) {
   )
 }
 
+// "Deberías tener hoy": todo lo que te han pagado desde que empezaste a contar, menos todo lo gastado.
+function SaldoEsperado({ saldo: s }) {
+  if (!s) return null
+  const recibido = s.inicial + s.ingresos
+  const base = Math.max(recibido, s.gastos.total, 1)
+  const partes = [
+    { id: "variable", nombre: "Gasto variable", monto: s.gastos.variable, tono: "alerta" },
+    { id: "fijos", nombre: "Gastos fijos", monto: s.gastos.fijos, tono: "neutral" },
+    { id: "extra", nombre: "Extraordinarios", monto: s.gastos.extraordinarios, tono: "malo" },
+  ].filter(x => x.monto > 0)
+  const fecha = k => new Date(`${k}T12:00:00`).toLocaleDateString("es-CR", { day: "numeric", month: "short" })
+  const n = s.quincenas.length
+  const desde = fecha(s.desde)
+  return (
+    <section className="fz-card fz-saldo">
+      <p className="fz-label">Deberías tener hoy</p>
+      <p className={`fz-grande fz-txt-${s.saldo >= 0 ? "bien" : "malo"}`}>
+        <Monto valor={s.saldo} />
+      </p>
+      <p className="fz-nota">
+        {n === 0 ? "Todavía no te han pagado ninguna quincena" : `${n} ${n === 1 ? "quincena" : "quincenas"} recibida${n === 1 ? "" : "s"}`}
+        {s.inicial ? ` + ${crc(s.inicial)} inicial` : ""}
+        {s.ingresosExtra ? ` + ${crc(s.ingresosExtra)} extra` : ""} · desde el {desde}
+      </p>
+
+      <div className="fz-apilada fz-saldo-barra" aria-hidden="true">
+        <div className="fz-apilada-relleno">
+          {partes.map(x => (
+            <div key={x.id} className={`fz-segmento fz-${x.tono}`} style={{ width: `${(x.monto / base) * 100}%` }} />
+          ))}
+          {s.saldo > 0 && <div className="fz-segmento fz-bien" style={{ width: `${(s.saldo / base) * 100}%` }} />}
+        </div>
+      </div>
+
+      <ul className="fz-saldo-cuentas">
+        <li>
+          <span>Recibido</span>
+          <span>{crc(recibido)}</span>
+        </li>
+        {partes.map(x => (
+          <li key={x.id}>
+            <span>
+              <i className={`fz-punto fz-${x.tono}`} /> {x.nombre}
+            </span>
+            <span>−{crc(x.monto)}</span>
+          </li>
+        ))}
+        <li className="fz-saldo-total">
+          <span>
+            <i className="fz-punto fz-bien" /> Deberías tener
+          </span>
+          <span>{crc(s.saldo)}</span>
+        </li>
+      </ul>
+
+      <p className="fz-nota">
+        Es lo que tienes en cuentas menos lo que debes en la tarjeta.
+        {s.proximoPago ? ` Próximo pago: ${fecha(s.proximoPago.dia)} · ${crc(s.proximoPago.monto)}.` : ""}
+      </p>
+    </section>
+  )
+}
+
 function Movimientos({ items, etiqueta }) {
   return (
     <div className="fz-card">
@@ -479,6 +542,8 @@ export default function FinanzasDashboard({ data, error }) {
             </ul>
           </div>
         </section>
+
+        <SaldoEsperado saldo={data.saldo} />
 
         <section className="fz-grid">
           {pasado ? (
