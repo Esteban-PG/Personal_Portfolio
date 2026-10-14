@@ -39,8 +39,8 @@ La página no está enlazada en el sitio, no aparece en el sitemap y no se index
 ## Pagos fijos del mes
 
 El resumen del script trae `fijos`: un elemento por gasto fijo vigente con `pagos`, `veces`,
-`pagado` y `estado` (`pagado` / `parcial` / `pendiente`). La página lo muestra en la vista Mes
-(`PagosFijos` en `components/FinanzasDashboard.js`). La configuración vive en la pestaña
+`pagado` y `estado` (`pagado` / `parcial` / `pendiente`). La página lo muestra en todas las vistas,
+justo debajo de "Te queda" y destacado en ámbar (`PagosFijos` en `components/FinanzasDashboard.js`). La configuración vive en la pestaña
 **Fijos** del Sheet (palabras clave separadas por coma y "Pagos por mes", p. ej. limpieza = 4).
 
 ## Deberías tener hoy

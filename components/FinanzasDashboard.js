@@ -69,29 +69,6 @@ function Lista({ titulo, items, tono }) {
   )
 }
 
-function Historico({ meses }) {
-  const max = Math.max(...meses.map(m => m.gasto), 1)
-  return (
-    <div className="fz-card">
-      <p className="fz-label">Gasto variable · últimos 6 meses</p>
-      <div className="fz-hist">
-        {meses.map((m, i) => (
-          <div key={m.clave} className="fz-hist-col">
-            <span className="fz-hist-valor">{m.gasto ? crc(m.gasto) : ""}</span>
-            <div className="fz-hist-area">
-              <div
-                className={`fz-hist-barra ${i === meses.length - 1 ? "fz-actual" : ""}`}
-                style={{ "--i": i, height: `${(m.gasto / max) * 100}%` }}
-              />
-            </div>
-            <span className="fz-hist-mes">{m.etiqueta.slice(0, 3)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 const ESTADO_FIJO = {
   pagado: { icono: "✓", texto: "Pagado", tono: "bien" },
   parcial: { icono: "◐", texto: "En curso", tono: "alerta" },
@@ -104,12 +81,19 @@ function PagosFijos({ fijos, etiqueta }) {
   const faltan = fijos.filter(f => f.estado !== "pagado")
   const montoFalta = faltan.reduce((s, f) => s + Math.max(f.monto - f.pagado, 0), 0)
   return (
-    <div className="fz-card fz-fijos">
+    <section className={`fz-card fz-fijos ${faltan.length ? "" : "fz-fijos-listo"}`}>
       <div className="fz-fijos-top">
-        <p className="fz-label">Pagos fijos · {etiqueta}</p>
-        <span className={`fz-fijos-cuenta fz-txt-${faltan.length ? "alerta" : "bien"}`}>
-          {listos}/{fijos.length}
+        <div>
+          <p className="fz-fijos-titulo">Pagos fijos</p>
+          <p className="fz-nota">{etiqueta}</p>
+        </div>
+        <span className="fz-fijos-cuenta">
+          {listos}
+          <small>/{fijos.length}</small>
         </span>
+      </div>
+      <div className="fz-fijos-progreso" aria-hidden="true">
+        <i style={{ width: `${(listos / fijos.length) * 100}%` }} />
       </div>
       <p className="fz-nota">
         {faltan.length === 0
@@ -142,12 +126,12 @@ function PagosFijos({ fijos, etiqueta }) {
                   </div>
                 )}
               </div>
-              <span className={`fz-fijo-estado fz-txt-${e.tono}`}>{e.texto}</span>
+              <span className={`fz-fijo-estado fz-fijo-estado-${e.tono}`}>{e.texto}</span>
             </li>
           )
         })}
       </ul>
-    </div>
+    </section>
   )
 }
 
@@ -543,28 +527,11 @@ export default function FinanzasDashboard({ data, error }) {
           </div>
         </section>
 
+        <PagosFijos fijos={data.fijos} etiqueta={data.mes.etiqueta} />
+
         <SaldoEsperado saldo={data.saldo} />
 
         <section className="fz-grid">
-          {pasado ? (
-            <Dato
-              titulo="Puedes gastar por día"
-              valor="Sin margen"
-              tono="malo"
-              nota={`Te pasaste por ${crc(-p.queda)} · cierras en ${crc(p.proyeccion)}`}
-            />
-          ) : (
-            <Dato
-              titulo="Puedes gastar por día"
-              valor={<Monto valor={p.porDia} />}
-              nota={`Si sigues así cierras en ${crc(p.proyeccion)}`}
-            />
-          )}
-          <Dato
-            titulo="Gasto variable"
-            valor={<Monto valor={p.gastoVariable} />}
-            nota={`Tarjeta ${crc(p.tarjeta)} · SINPE/efectivo ${crc(p.manual)}`}
-          />
           {esMes && data.mes.ahorroProyectado !== undefined && (
             <Dato
               titulo="Ahorro del mes (proyectado)"
@@ -577,8 +544,6 @@ export default function FinanzasDashboard({ data, error }) {
             <Dato titulo="Ahorro acumulado" valor={crc(data.mes.ahorroAcumulado)} nota={`${p.transacciones} gastos en el periodo`} />
           )}
         </section>
-
-        {esMes && <PagosFijos key="fijos" fijos={data.fijos} etiqueta={p.etiqueta} />}
 
         {/* key = vista: al cambiar de vista los gráficos se vuelven a dibujar */}
         <CurvaAcumulada key={`curva-${mostrada}`} periodo={p} />
@@ -595,8 +560,6 @@ export default function FinanzasDashboard({ data, error }) {
         <TopGastos key={`top-${mostrada}`} movimientos={movimientos} />
 
         {esMes && <PorDiaSemana diario={data.mes.diario} />}
-
-        {esMes && <Historico meses={data.historico} />}
 
         <Movimientos key={`movs-${mostrada}`} items={movimientos} etiqueta={p.etiqueta} />
       </div>
