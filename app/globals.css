@@ -2030,3 +2030,76 @@ button.rn-day-btn:hover {
     width: 100%;
   }
 }
+
+/* ---------- /finanzas: pagos fijos del mes ---------- */
+.fz-fijos-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.fz-fijos-cuenta {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+.fz-fijos-lista {
+  list-style: none;
+  margin-top: 6px;
+}
+.fz-fijos-lista li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  animation: fz-subir 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.fz-fijos-lista li:last-child {
+  border-bottom: none;
+}
+.fz-fijo-icono {
+  font-family: var(--mono);
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.fz-fijo-info {
+  flex: 1;
+  min-width: 0;
+}
+.fz-fijo-nombre {
+  font-size: 14px;
+}
+.fz-fijo-pagado .fz-fijo-nombre {
+  color: var(--muted);
+}
+.fz-fijo-estado {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fz-fijo-pasos {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.fz-fijo-pasos i {
+  flex: 1;
+  max-width: 36px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.fz-fijo-pasos i.lleno {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fz-fijos-lista li {
+    animation: none;
+  }
+}

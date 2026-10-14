@@ -92,6 +92,65 @@ function Historico({ meses }) {
   )
 }
 
+const ESTADO_FIJO = {
+  pagado: { icono: "✓", texto: "Pagado", tono: "bien" },
+  parcial: { icono: "◐", texto: "En curso", tono: "alerta" },
+  pendiente: { icono: "○", texto: "Pendiente", tono: "malo" },
+}
+
+function PagosFijos({ fijos, etiqueta }) {
+  if (!fijos || fijos.length === 0) return null
+  const listos = fijos.filter(f => f.estado === "pagado").length
+  const faltan = fijos.filter(f => f.estado !== "pagado")
+  const montoFalta = faltan.reduce((s, f) => s + Math.max(f.monto - f.pagado, 0), 0)
+  return (
+    <div className="fz-card fz-fijos">
+      <div className="fz-fijos-top">
+        <p className="fz-label">Pagos fijos · {etiqueta}</p>
+        <span className={`fz-fijos-cuenta fz-txt-${faltan.length ? "alerta" : "bien"}`}>
+          {listos}/{fijos.length}
+        </span>
+      </div>
+      <p className="fz-nota">
+        {faltan.length === 0
+          ? "Todo pagado este mes."
+          : `Faltan ${faltan.length} · aprox. ${crc(montoFalta)} por pagar`}
+      </p>
+      <ul className="fz-fijos-lista">
+        {fijos.map((f, i) => {
+          const e = ESTADO_FIJO[f.estado] || ESTADO_FIJO.pendiente
+          const ultimo = f.ultimoPago
+            ? new Date(`${f.ultimoPago}T12:00:00`).toLocaleDateString("es-CR", { day: "numeric", month: "short" })
+            : null
+          return (
+            <li key={f.concepto} className={`fz-fijo-${f.estado}`} style={{ "--i": i }}>
+              <span className={`fz-fijo-icono fz-txt-${e.tono}`} aria-hidden="true">
+                {e.icono}
+              </span>
+              <div className="fz-fijo-info">
+                <p className="fz-fijo-nombre">{f.concepto}</p>
+                <p className="fz-nota">
+                  {f.veces > 1 ? `${f.pagos} de ${f.veces} pagos · ` : ""}
+                  {f.pagado ? `${crc(f.pagado)} de ${crc(f.monto)}` : crc(f.monto)}
+                  {ultimo ? ` · último ${ultimo}` : ""}
+                </p>
+                {f.veces > 1 && (
+                  <div className="fz-fijo-pasos" aria-hidden="true">
+                    {Array.from({ length: f.veces }, (_, k) => (
+                      <i key={k} className={k < f.pagos ? "lleno" : ""} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <span className={`fz-fijo-estado fz-txt-${e.tono}`}>{e.texto}</span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 function Movimientos({ items, etiqueta }) {
   return (
     <div className="fz-card">
@@ -453,6 +512,8 @@ export default function FinanzasDashboard({ data, error }) {
             <Dato titulo="Ahorro acumulado" valor={crc(data.mes.ahorroAcumulado)} nota={`${p.transacciones} gastos en el periodo`} />
           )}
         </section>
+
+        {esMes && <PagosFijos key="fijos" fijos={data.fijos} etiqueta={p.etiqueta} />}
 
         {/* key = vista: al cambiar de vista los gráficos se vuelven a dibujar */}
         <CurvaAcumulada key={`curva-${mostrada}`} periodo={p} />
